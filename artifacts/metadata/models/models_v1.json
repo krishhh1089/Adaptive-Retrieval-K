@@ -1,0 +1,61 @@
+{
+  "version": "v1",
+  "model_type": "RandomForestClassifier",
+  "architecture_reference": "SAGE: SLO-Aware Adaptive Retrieval for Production RAG Systems (2026)",
+  "hyperparameters": {
+    "n_estimators": 100,
+    "max_depth": 10,
+    "random_state": 42,
+    "criterion": "gini"
+  },
+  "feature_space": {
+    "feature_count": 10,
+    "feature_names": [
+      "query_char_len",
+      "query_word_count",
+      "query_type",
+      "query_complexity",
+      "dense_top1_score",
+      "dense_score_drop_1_2",
+      "bm25_top1_score",
+      "bm25_score_drop_1_2",
+      "jaccard_top2",
+      "time_remaining_ms"
+    ]
+  },
+  "candidate_budgets": [2, 3, 5, 7, 10, 15, 20, 25, 30],
+  "dataset": {
+    "training_source": "experiments/oracle_results/oracle_dataset.csv",
+    "total_samples": 41,
+    "train_samples": 32,
+    "validation_samples": 9,
+    "label_distribution": {
+      "K=2": 32,
+      "K=3": 3,
+      "K=5": 2,
+      "K=7": 1,
+      "K=15": 2,
+      "K=20": 1
+    }
+  },
+  "metrics": {
+    "train_accuracy": 1.0,
+    "train_mae": 0.0,
+    "validation_accuracy": 0.7778,
+    "validation_mae": 3.4444
+  },
+  "feature_importances": {
+    "dense_score_drop_1_2": 0.2018,
+    "bm25_top1_score": 0.1421,
+    "time_remaining_ms": 0.1394,
+    "dense_top1_score": 0.1377,
+    "bm25_score_drop_1_2": 0.1276,
+    "query_char_len": 0.096,
+    "query_type": 0.092,
+    "query_word_count": 0.0428,
+    "jaccard_top2": 0.0207,
+    "query_complexity": 0.0
+  },
+  "artifact_path": "artifacts/models/random_forest/sage_policy.pkl"
+}
+

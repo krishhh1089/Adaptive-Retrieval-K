@@ -3,7 +3,9 @@ scripts/build_oracle_dataset.py
 
 Constructs the SAGE Oracle training dataset across all answerable queries.
 Extracts 10-D feature vectors and computes optimal minimal budgets K*.
-Saves output to experiments/oracle_labels/oracle_dataset.csv.
+Saves output to:
+- experiments/oracle_results/oracle_dataset.csv (full ML dataset with features + labels)
+- experiments/oracle_labels/oracle_labels.csv (pure labels only)
 """
 
 import sys
@@ -63,7 +65,7 @@ def main():
 
     df = pd.DataFrame(rows)
 
-    # 5. Save dataset
+    # 5. Save full dataset (features + labels) to oracle_results/
     config.ORACLE_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     csv_path = config.ORACLE_RESULTS_DIR / "oracle_dataset.csv"
     jsonl_path = config.ORACLE_RESULTS_DIR / "oracle_dataset.jsonl"
@@ -71,12 +73,25 @@ def main():
     df.to_csv(csv_path, index=False)
     df.to_json(jsonl_path, orient="records", lines=True)
 
+    # 6. Save clean labels to oracle_labels/
+    config.ORACLE_LABELS_DIR.mkdir(parents=True, exist_ok=True)
+    labels_df = df[["qid", "question", "oracle_k"]]
+    labels_csv_path = config.ORACLE_LABELS_DIR / "oracle_labels.csv"
+    labels_jsonl_path = config.ORACLE_LABELS_DIR / "oracle_labels.jsonl"
+
+    labels_df.to_csv(labels_csv_path, index=False)
+    labels_df.to_json(labels_jsonl_path, orient="records", lines=True)
+
     print("\n" + "=" * 65)
     print("ORACLE DATASET GENERATION SUMMARY")
     print("=" * 65)
     print(f"Total Samples Generated: {len(df)}")
-    print(f"Saved CSV:   {csv_path}")
-    print(f"Saved JSONL: {jsonl_path}")
+    print(f"Saved Full Dataset (features + labels):")
+    print(f"  CSV:   {csv_path}")
+    print(f"  JSONL: {jsonl_path}")
+    print(f"Saved Pure Labels:")
+    print(f"  CSV:   {labels_csv_path}")
+    print(f"  JSONL: {labels_jsonl_path}")
 
     print("\nOracle K* Distribution:")
     k_counts = df["oracle_k"].value_counts().sort_index()
