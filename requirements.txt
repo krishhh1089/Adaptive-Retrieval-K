@@ -27,3 +27,7 @@ tqdm
 matplotlib
 jupyter
 ipykernel
+
+# --- Testing ---
+pytest
+

@@ -51,6 +51,26 @@ def main():
     print(f"API Latency:        {result.latency_ms:.2f} ms")
 
     assert len(result.generated_answer) > 0, "Generated answer is empty!"
+
+    # 4. Test SAGE end-to-end adaptive pipeline integration
+    print("\nTesting SAGE Adaptive Generation (generate_with_sage)...")
+    sage_result = generator.generate_with_sage(
+        query=test_query,
+        retriever=retriever,
+        policy=None,  # Fallback to default_k=3
+        default_k=3,
+        candidate_pool_depth=10,
+    )
+
+    print("\n=== SAGE Pipeline Results ===")
+    print(f"Selected K:              {sage_result.selected_k}")
+    print(f"Features Extracted (10): {sage_result.features.to_feature_dict()}")
+    print(f"Probe Latency:           {sage_result.probe_latency_ms:.2f} ms")
+    print(f"Total Request Latency:   {sage_result.total_request_latency_ms:.2f} ms")
+    print(f"Generated Answer:        {sage_result.generation_result.generated_answer}")
+    assert sage_result.selected_k == 3
+    assert len(sage_result.features.to_array()) == 10
+
     print("\nStep 7.1 Verification Complete!")
 
 

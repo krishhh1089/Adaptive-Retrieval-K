@@ -97,6 +97,31 @@ class HybridRetriever:
 
         # 3. Reciprocal Rank Fusion
         t0 = time.perf_counter()
+        scored_passages = self.fuse_candidates(
+            dense_results=dense_results,
+            sparse_results=sparse_results,
+            top_k=top_k,
+        )
+        t_fusion = (time.perf_counter() - t0) * 1000.0
+
+        return HybridRetrievalResult(
+            query=query,
+            passages=scored_passages,
+            dense_latency_ms=t_dense,
+            sparse_latency_ms=t_sparse,
+            fusion_latency_ms=t_fusion,
+            total_retrieval_latency_ms=t_dense + t_sparse + t_fusion,
+        )
+
+    def fuse_candidates(
+        self,
+        dense_results: List[Tuple[int, float]],
+        sparse_results: List[Tuple[int, float]],
+        top_k: int = 10,
+    ) -> List[ScoredPassage]:
+        """
+        Combines dense and sparse ranked candidates using Reciprocal Rank Fusion.
+        """
         rrf_scores: Dict[int, float] = {}
         dense_meta: Dict[int, Tuple[int, float]] = {}  # idx -> (rank, score)
         sparse_meta: Dict[int, Tuple[int, float]] = {}
@@ -111,7 +136,6 @@ class HybridRetriever:
 
         # Sort by RRF score descending
         fused_sorted = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
-        t_fusion = (time.perf_counter() - t0) * 1000.0
 
         # Truncate to desired final top_k
         selected_candidates = fused_sorted[:top_k]
@@ -137,12 +161,5 @@ class HybridRetriever:
                 )
             )
 
-        return HybridRetrievalResult(
-            query=query,
-            passages=scored_passages,
-            dense_latency_ms=t_dense,
-            sparse_latency_ms=t_sparse,
-            fusion_latency_ms=t_fusion,
-            total_retrieval_latency_ms=t_dense + t_sparse + t_fusion,
-        )
+        return scored_passages
 

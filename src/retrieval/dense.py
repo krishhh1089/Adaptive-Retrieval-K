@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import List, Tuple, Optional
 import pickle
 import time
+import os
 
 import numpy as np
 import faiss
@@ -63,9 +64,9 @@ class DenseBGERetriever:
         """Lazily load BGE-M3 onto available hardware."""
 
         if self.model is None:
-            import os
             cache_dir = Path.home() / ".cache" / "huggingface" / "hub"
             model_slug = f"models--{self.model_name.replace('/', '--')}"
+
             if (cache_dir / model_slug).exists():
                 os.environ["HF_HUB_OFFLINE"] = "1"
                 os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -73,19 +74,16 @@ class DenseBGERetriever:
             from FlagEmbedding import BGEM3FlagModel
 
             device = (
-                "cuda"
-                if torch.cuda.is_available()
-                else "cpu"
+                "cuda" if torch.cuda.is_available() else "cpu"
             )
 
             use_fp16 = (
-                torch.cuda.is_available()
-                and DENSE_USE_FP16
+                torch.cuda.is_available() and DENSE_USE_FP16
             )
 
             logger.info(
-                f"Loading BGE-M3 model '{self.model_name}' "
-                f"(device={device}, use_fp16={use_fp16})..."
+                f"Loading BGE-M3: device={device}, "
+                f"use_fp16={use_fp16}"
             )
 
             self.model = BGEM3FlagModel(
@@ -104,10 +102,7 @@ class DenseBGERetriever:
         """Generate and cache passage embeddings."""
 
         if self.embeddings_file.exists():
-            logger.info(
-                f"Loading cached embeddings from "
-                f"{self.embeddings_file.name}..."
-            )
+            logger.info("Checking cached embeddings...")
 
             embeddings = np.load(self.embeddings_file)
 
@@ -124,9 +119,11 @@ class DenseBGERetriever:
         self._init_model()
 
         logger.info(
-            f"Encoding {len(texts)} passages "
-            f"in batches of {batch_size}..."
+            f"Encoding {len(texts)} passages, "
+            f"batch_size={batch_size}"
         )
+
+        start = time.perf_counter()
 
         output = self.model.encode(
             texts,
@@ -134,12 +131,16 @@ class DenseBGERetriever:
             max_length=512,
         )
 
+        embedding_time = time.perf_counter() - start
+
         embeddings = np.asarray(
             output["dense_vecs"],
             dtype=np.float32,
         )
 
+        start = time.perf_counter()
         faiss.normalize_L2(embeddings)
+        normalization_time = time.perf_counter() - start
 
         self.embeddings_dir.mkdir(
             parents=True,
@@ -149,8 +150,15 @@ class DenseBGERetriever:
         np.save(self.embeddings_file, embeddings)
 
         logger.info(
-            f"Saved {len(embeddings)} normalized embeddings "
-            f"to {self.embeddings_file.name}"
+            f"Passage embedding generation: "
+            f"{embedding_time:.2f} seconds"
+        )
+        logger.info(
+            f"Passage normalization: "
+            f"{normalization_time:.2f} seconds"
+        )
+        logger.info(
+            f"Saved {len(embeddings)} embeddings."
         )
 
         return embeddings
@@ -177,12 +185,19 @@ class DenseBGERetriever:
             f"(dimension={dimension})..."
         )
 
+        start = time.perf_counter()
+
         self.faiss_index = faiss.IndexFlatIP(dimension)
         self.faiss_index.add(embeddings)
 
+        index_build_time = time.perf_counter() - start
+
         logger.info(
-            f"FAISS index built with "
-            f"{self.faiss_index.ntotal} vectors."
+            f"FAISS index built: {self.faiss_index.ntotal} vectors"
+        )
+        logger.info(
+            f"Index construction time: "
+            f"{index_build_time * 1000:.2f} ms"
         )
 
     def save(self) -> None:
@@ -210,8 +225,7 @@ class DenseBGERetriever:
             )
 
         logger.info(
-            f"FAISS index saved: {self.index_file.name} "
-            f"({self.faiss_index.ntotal} vectors)."
+            f"FAISS index saved: {self.index_file.name}"
         )
 
     def load(self) -> None:
@@ -241,22 +255,19 @@ class DenseBGERetriever:
             )
 
         logger.info(
-            f"Loaded FAISS index from {self.index_file.name} "
-            f"({self.faiss_index.ntotal} vectors)."
+            f"Loaded FAISS index: {self.faiss_index.ntotal} vectors"
         )
 
     def encode_query(self, query: str) -> np.ndarray:
         """
-        Encode query and separately measure:
-        model initialization, embedding generation,
-        and vector normalization.
+        Encode query and measure individual operations.
         """
+
+        total_start = time.perf_counter()
 
         # 1. Model initialization
         start = time.perf_counter()
-
         self._init_model()
-
         model_load_time = time.perf_counter() - start
 
         # 2. Query embedding generation
@@ -274,29 +285,29 @@ class DenseBGERetriever:
         # 3. Convert and normalize
         start = time.perf_counter()
 
-        q_vec = np.asarray(
-            q_vec,
-            dtype=np.float32,
-        )
-
+        q_vec = np.asarray(q_vec, dtype=np.float32)
         faiss.normalize_L2(q_vec)
 
         normalization_time = time.perf_counter() - start
 
-        logger.info(
-            f"Model initialization: "
-            f"{model_load_time * 1000:.2f} ms"
-        )
+        total_encoding_time = time.perf_counter() - total_start
 
+        logger.info("-" * 55)
+        logger.info("QUERY ENCODING BREAKDOWN")
+        logger.info("-" * 55)
         logger.info(
-            f"Query embedding generation: "
-            f"{embedding_time * 1000:.2f} ms"
+            f"Model initialization : {model_load_time * 1000:.2f} ms"
         )
-
         logger.info(
-            f"Query normalization: "
-            f"{normalization_time * 1000:.2f} ms"
+            f"Query embedding      : {embedding_time * 1000:.2f} ms"
         )
+        logger.info(
+            f"Normalization        : {normalization_time * 1000:.2f} ms"
+        )
+        logger.info(
+            f"Total query encoding : {total_encoding_time * 1000:.2f} ms"
+        )
+        logger.info("-" * 55)
 
         return q_vec
 
@@ -306,8 +317,8 @@ class DenseBGERetriever:
         top_k: int = 30,
     ) -> List[Tuple[int, float]]:
         """
-        Search FAISS and separately measure
-        query encoding and FAISS search latency.
+        Search FAISS and measure query encoding,
+        FAISS search and total dense retrieval.
         """
 
         if self.faiss_index is None:
@@ -316,18 +327,15 @@ class DenseBGERetriever:
                 "Call build_index or load first."
             )
 
-        # 1. Query encoding
-        start = time.perf_counter()
+        total_start = time.perf_counter()
 
+        # 1. Query encoding
         query_vec = self.encode_query(query)
 
-        query_encoding_time = time.perf_counter() - start
+        query_encoding_time = time.perf_counter() - total_start
 
         # 2. FAISS search only
-        top_k = min(
-            top_k,
-            self.faiss_index.ntotal,
-        )
+        top_k = min(top_k, self.faiss_index.ntotal)
 
         start = time.perf_counter()
 
@@ -338,37 +346,36 @@ class DenseBGERetriever:
 
         faiss_search_time = time.perf_counter() - start
 
-        # 3. Total dense retrieval time
-        total_time = (
-            query_encoding_time + faiss_search_time
-        )
+        # 3. Result conversion
+        start = time.perf_counter()
 
-        logger.info("=" * 50)
-        logger.info("DENSE RETRIEVAL LATENCY BREAKDOWN")
-        logger.info("=" * 50)
-
-        logger.info(
-            f"Query encoding: "
-            f"{query_encoding_time * 1000:.2f} ms"
-        )
-
-        logger.info(
-            f"FAISS search only: "
-            f"{faiss_search_time * 1000:.2f} ms"
-        )
-
-        logger.info(
-            f"Total dense retrieval: "
-            f"{total_time * 1000:.2f} ms"
-        )
-
-        logger.info("=" * 50)
-
-        return [
+        results = [
             (int(idx), float(score))
-            for idx, score in zip(
-                indices[0],
-                scores[0],
-            )
+            for idx, score in zip(indices[0], scores[0])
             if idx != -1
         ]
+
+        result_conversion_time = time.perf_counter() - start
+
+        total_time = time.perf_counter() - total_start
+
+        logger.info("=" * 55)
+        logger.info("DENSE RETRIEVAL LATENCY BREAKDOWN")
+        logger.info("=" * 55)
+
+        logger.info(
+            f"Query encoding       : {query_encoding_time * 1000:.2f} ms"
+        )
+        logger.info(
+            f"FAISS search only    : {faiss_search_time * 1000:.2f} ms"
+        )
+        logger.info(
+            f"Result conversion   : {result_conversion_time * 1000:.2f} ms"
+        )
+        logger.info(
+            f"TOTAL DENSE LATENCY  : {total_time * 1000:.2f} ms"
+        )
+
+        logger.info("=" * 55)
+
+        return results

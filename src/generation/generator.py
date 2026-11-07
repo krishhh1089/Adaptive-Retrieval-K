@@ -3,24 +3,29 @@ src/generation/generator.py
 
 LLM Generation client using Groq API and openai/gpt-oss-120b.
 Enforces deterministic greedy decoding (temperature=0.0) and records token telemetry.
+Integrates SAGE adaptive retrieval budget allocation using lightweight probe features.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 import os
 import time
 
 from groq import Groq, RateLimitError, APIError
 
 from src.config import (
+    CANDIDATE_K_VALUES,
     GENERATION_MAX_TOKENS,
     GENERATION_TEMPERATURE,
     GROQ_API_KEY,
     GROQ_MODEL,
     MAX_RETRIES,
     REQUEST_TIMEOUT_SECONDS,
+    RETRIEVAL_CANDIDATE_POOL,
+    SLO_P95_LATENCY_SECONDS,
 )
-from src.retrieval.hybrid import ScoredPassage
+from src.retrieval.features import FeatureExtractor, QueryRetrievalFeatures
+from src.retrieval.hybrid import HybridRetriever, ScoredPassage
 from src.utils.logger import setup_logger
 
 logger = setup_logger("generator")
@@ -47,9 +52,21 @@ class GenerationResult:
     model_id: str
 
 
+@dataclass
+class SAGEGenerationResult:
+    query: str
+    selected_k: int
+    features: QueryRetrievalFeatures
+    generation_result: GenerationResult
+    passages: List[ScoredPassage]
+    probe_latency_ms: float
+    total_request_latency_ms: float
+
+
 class GroqGenerator:
     """
-    Client for Groq LLM generation with retry logic and telemetry instrumentation.
+    Client for Groq LLM generation with retry logic, telemetry instrumentation,
+    and adaptive SAGE retrieval budget execution.
     """
 
     def __init__(
@@ -98,7 +115,7 @@ class GroqGenerator:
         context_token_budget: Optional[int] = None,
     ) -> GenerationResult:
         """
-        Executes zero-shot generation over retrieved passages.
+        Executes zero-shot generation over retrieved passages with greedy decoding.
         """
         context = self.format_context(passages, max_tokens_budget=context_token_budget)
         user_prompt = f"Context:\n{context}\n\nQuestion: {query}\n\nAnswer:"
@@ -152,3 +169,88 @@ class GroqGenerator:
 
         raise RuntimeError(f"Failed to generate answer after {MAX_RETRIES} retries. Last error: {last_error}")
 
+    def generate_with_sage(
+        self,
+        query: str,
+        retriever: HybridRetriever,
+        policy: Optional[Any] = None,
+        default_k: int = 5,
+        candidate_pool_depth: int = RETRIEVAL_CANDIDATE_POOL,
+        context_token_budget: Optional[int] = None,
+        slo_budget_ms: Optional[float] = None,
+        request_start_time: Optional[float] = None,
+    ) -> SAGEGenerationResult:
+        """
+        Executes end-to-end SAGE adaptive generation:
+        1. Records monotonic request start time.
+        2. Retrieves candidate pool (depth >= 2) from dense and BM25 channels.
+        3. Captures dense and BM25 scores and canonical passage IDs before RRF fusion.
+        4. Extracts lightweight k=2 probe features & latency budget.
+        5. Predicts adaptive budget K using the Random Forest policy.
+        6. Fuses candidates using RRF up to predicted K (no redundant retrieval passes).
+        7. Sends selected passages to LLM with greedy decoding.
+        """
+        req_start = request_start_time if request_start_time is not None else time.perf_counter()
+
+        # 1. Candidate retrieval (serving both the k=2 probe and the subsequent budget K)
+        t_probe_start = time.perf_counter()
+        pool_depth = max(candidate_pool_depth, 2)
+        dense_candidates = retriever.dense_retriever.search(query, top_k=pool_depth)
+        sparse_candidates = retriever.sparse_retriever.search(query, top_k=pool_depth)
+        probe_latency_ms = (time.perf_counter() - t_probe_start) * 1000.0
+
+        # Map to canonical chunk IDs and scores
+        chunks = retriever.chunks
+        dense_ids = [chunks[idx].chunk_id if chunks and idx < len(chunks) else f"chunk_{idx}" for idx, _ in dense_candidates]
+        sparse_ids = [chunks[idx].chunk_id if chunks and idx < len(chunks) else f"chunk_{idx}" for idx, _ in sparse_candidates]
+        dense_scores = [score for _, score in dense_candidates]
+        sparse_scores = [score for _, score in sparse_candidates]
+
+        # 2. Extract research-aligned features
+        features = FeatureExtractor.extract_features(
+            query=query,
+            dense_scores=dense_scores,
+            dense_passage_ids=dense_ids,
+            sparse_scores=sparse_scores,
+            sparse_passage_ids=sparse_ids,
+            request_start_time=req_start,
+            slo_budget_ms=slo_budget_ms,
+        )
+
+        # 3. Predict adaptive budget K using trained Random Forest policy
+        if policy is not None:
+            feature_vector = features.to_array().reshape(1, -1)
+            pred = policy.predict(feature_vector)
+            if hasattr(pred, "__len__"):
+                pred = pred[0]
+            raw_k = int(round(float(pred)))
+            # Snap to valid candidate budgets: [2, 3, 5, 7, 10, 15, 20, 25, 30]
+            selected_k = min(CANDIDATE_K_VALUES, key=lambda x: abs(x - raw_k))
+        else:
+            selected_k = default_k
+
+        # 4. Perform RRF fusion over the retrieved candidate pool up to selected_k
+        fused_passages = retriever.fuse_candidates(
+            dense_results=dense_candidates,
+            sparse_results=sparse_candidates,
+            top_k=selected_k,
+        )
+
+        # 5. Generate answer using selected passages
+        gen_result = self.generate(
+            query=query,
+            passages=fused_passages,
+            context_token_budget=context_token_budget,
+        )
+
+        total_request_latency_ms = (time.perf_counter() - req_start) * 1000.0
+
+        return SAGEGenerationResult(
+            query=query,
+            selected_k=selected_k,
+            features=features,
+            generation_result=gen_result,
+            passages=fused_passages,
+            probe_latency_ms=probe_latency_ms,
+            total_request_latency_ms=total_request_latency_ms,
+        )
