@@ -1,0 +1,24 @@
+# Virtual environment
+venv/
+.venv/
+
+# Environment variables and secrets
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated artifacts
+artifacts/embeddings/
+artifacts/indexes/
+artifacts/models/
+
+# Experiment outputs
+experiments/
+
+# Editor settings
+.vscode/

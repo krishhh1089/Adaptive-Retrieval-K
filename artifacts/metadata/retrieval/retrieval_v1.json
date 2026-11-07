@@ -1,0 +1,30 @@
+{
+  "version": "v1",
+  "dense_index": {
+    "engine": "FAISS",
+    "index_type": "IndexFlatIP",
+    "dimension": 1024,
+    "metric": "Inner Product (Cosine Similarity on L2-normalized vectors)",
+    "ntotal": 8826,
+    "index_path": "artifacts/indexes/faiss/index.faiss",
+    "metadata_path": "artifacts/indexes/faiss/metadata.pkl"
+  },
+  "sparse_index": {
+    "algorithm": "BM25Okapi",
+    "tokenizer": "Regex lowercase alphanumeric (\\b\\w+\\b)",
+    "ntotal": 8826,
+    "index_path": "artifacts/indexes/bm25/bm25_index.pkl"
+  },
+  "hybrid_fusion": {
+    "method": "Reciprocal Rank Fusion (RRF)",
+    "constant_k_rrf": 60,
+    "candidate_pool_depth": 30,
+    "formula": "sum(1 / (60 + rank_m(d))) for m in {dense, sparse}"
+  },
+  "latency_profile_ms": {
+    "dense_search": 3.40,
+    "sparse_search": 50.32,
+    "rrf_fusion": 0.08
+  }
+}
+

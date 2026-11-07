@@ -1,0 +1,29 @@
+# --- Core Retrieval & Indexing ---
+numpy
+pandas
+scikit-learn
+faiss-cpu
+rank-bm25
+FlagEmbedding
+
+# --- Text Processing & Dataset Handling ---
+beautifulsoup4
+datasets
+langchain-text-splitters
+
+# --- LLM Generation & Configuration ---
+groq
+python-dotenv
+
+# --- Workload Telemetry & Profiling ---
+psutil
+
+# --- Evaluation & NLP Metrics ---
+rouge-score
+nltk
+tqdm
+
+# --- Visualization & Interactive Notebooks ---
+matplotlib
+jupyter
+ipykernel

@@ -1,0 +1,25 @@
+{
+  "version": "v1",
+  "name": "Natural Questions Wikipedia Sample",
+  "source": "google-research-datasets/natural_questions",
+  "created_at": "2026-11-07",
+  "total_raw_records": 100,
+  "unique_documents": 100,
+  "question_records": 100,
+  "answerable_questions": 54,
+  "unanswerable_questions": 46,
+  "cleaning_pipeline": {
+    "html_parser": "BeautifulSoup4 (html.parser)",
+    "infobox_extracted": true,
+    "decomposed_tags": ["script", "style", "nav", "footer", "header", "aside", "form", "button", "svg", "noscript"],
+    "decomposed_selectors": [".mw-jump-link", ".mw-editsection", ".mw-indicators", ".toc", "#toc", ".navbox", ".vertical-navbox", ".catlinks", ".hatnote"],
+    "deduplication": "SHA-256 document content hashing"
+  },
+  "files": {
+    "raw_sample": "artifacts/dataset/nq_test_sample.jsonl",
+    "clean_sample": "artifacts/dataset/nq_clean_sample.jsonl",
+    "unique_documents": "artifacts/dataset/unique_documents.jsonl",
+    "question_records": "artifacts/dataset/question_records.jsonl"
+  }
+}
+

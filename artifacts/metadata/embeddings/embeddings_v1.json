@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "name": "BGE-M3 Dense Chunk Embeddings",
+  "model_name": "BAAI/bge-m3",
+  "embedding_dimension": 1024,
+  "total_vectors": 8826,
+  "dtype": "float32",
+  "normalized": "L2 normalized",
+  "hardware_device": "cpu",
+  "use_fp16": false,
+  "batch_size": 16,
+  "max_token_length": 512,
+  "file_path": "artifacts/embeddings/bge_m3_embeddings.npy"
+}
+

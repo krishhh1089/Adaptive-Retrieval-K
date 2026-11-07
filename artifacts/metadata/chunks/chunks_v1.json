@@ -1,0 +1,22 @@
+{
+  "version": "v1",
+  "name": "Recursive Character Corpus Chunks",
+  "source_document_count": 100,
+  "total_chunks": 8826,
+  "chunking_method": "RecursiveCharacterTextSplitter",
+  "parameters": {
+    "chunk_size": 500,
+    "chunk_overlap": 100,
+    "separators": ["\n\n", "\n", ". ", "? ", "! ", "; ", ", ", " ", ""],
+    "length_function": "len",
+    "is_separator_regex": false
+  },
+  "statistics": {
+    "mean_length_chars": 409.6,
+    "min_length_chars": 3,
+    "max_length_chars": 500
+  },
+  "id_format": "{doc_id}_chunk_{index}",
+  "file_path": "artifacts/dataset/chunks.jsonl"
+}
+
