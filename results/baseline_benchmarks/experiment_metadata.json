@@ -1,0 +1,95 @@
+{
+  "experiment_name": "SAGE_Baseline_and_Latency_Analysis",
+  "timestamp": "2026-11-08 02:27:48",
+  "runtime_environment": {
+    "os": "Windows",
+    "os_release": "11",
+    "python_version": "3.12.4",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 154 Stepping 4, GenuineIntel"
+  },
+  "models": {
+    "llm": "openai/gpt-oss-120b",
+    "llm_temperature": 0.0,
+    "dense_retriever": "BAAI/bge-m3",
+    "sparse_retriever": "BM25Okapi",
+    "policy_model": "RandomForestClassifier(n_estimators=100, max_depth=10)"
+  },
+  "evaluation_setup": {
+    "total_queries_evaluated": 5,
+    "warmup_queries": 1,
+    "slo_target_seconds": 5.0,
+    "candidate_k_values": [
+      2,
+      3,
+      5,
+      7,
+      10,
+      15,
+      20,
+      25,
+      30
+    ]
+  },
+  "bottleneck_analysis": {
+    "fixed_k2": {
+      "total_mean_ms": 3385.4,
+      "primary_bottleneck": "LLM Generation (Groq)",
+      "primary_latency_ms": 3014.8,
+      "primary_share_pct": 89.05,
+      "secondary_bottleneck": "Dense Retrieval (FAISS)",
+      "secondary_latency_ms": 322.05,
+      "secondary_share_pct": 9.51
+    },
+    "fixed_k5": {
+      "total_mean_ms": 5343.17,
+      "primary_bottleneck": "LLM Generation (Groq)",
+      "primary_latency_ms": 4986.08,
+      "primary_share_pct": 93.32,
+      "secondary_bottleneck": "Dense Retrieval (FAISS)",
+      "secondary_latency_ms": 306.83,
+      "secondary_share_pct": 5.74
+    },
+    "fixed_k10": {
+      "total_mean_ms": 11503.27,
+      "primary_bottleneck": "LLM Generation (Groq)",
+      "primary_latency_ms": 11113.23,
+      "primary_share_pct": 96.61,
+      "secondary_bottleneck": "Dense Retrieval (FAISS)",
+      "secondary_latency_ms": 340.77,
+      "secondary_share_pct": 2.96
+    },
+    "fixed_k30": {
+      "total_mean_ms": 26406.6,
+      "primary_bottleneck": "LLM Generation (Groq)",
+      "primary_latency_ms": 26008.27,
+      "primary_share_pct": 98.49,
+      "secondary_bottleneck": "Dense Retrieval (FAISS)",
+      "secondary_latency_ms": 350.31,
+      "secondary_share_pct": 1.33
+    },
+    "adaptive_sage": {
+      "total_mean_ms": 4015.71,
+      "primary_bottleneck": "LLM Generation (Groq)",
+      "primary_latency_ms": 3653.92,
+      "primary_share_pct": 90.99,
+      "secondary_bottleneck": "Dense Retrieval (FAISS)",
+      "secondary_latency_ms": 300.41,
+      "secondary_share_pct": 7.48
+    }
+  },
+  "generated_artifacts": {
+    "query_level_csv": "C:\\Users\\jasui\\OneDrive\\Desktop\\Projects\\Load-Aware-SAGE\\results\\baseline_benchmarks\\query_level_results.csv",
+    "summary_csv": "C:\\Users\\jasui\\OneDrive\\Desktop\\Projects\\Load-Aware-SAGE\\results\\baseline_benchmarks\\benchmark_results.csv",
+    "summary_json": "C:\\Users\\jasui\\OneDrive\\Desktop\\Projects\\Load-Aware-SAGE\\results\\baseline_benchmarks\\benchmark_results.json",
+    "stage_latency_csv": "C:\\Users\\jasui\\OneDrive\\Desktop\\Projects\\Load-Aware-SAGE\\results\\latency_analysis\\stage_latency.csv",
+    "charts": [
+      "C:\\Users\\jasui\\OneDrive\\Desktop\\Projects\\Load-Aware-SAGE\\results\\latency_analysis\\baseline_comparison.png",
+      "C:\\Users\\jasui\\OneDrive\\Desktop\\Projects\\Load-Aware-SAGE\\results\\latency_analysis\\p95_comparison.png",
+      "C:\\Users\\jasui\\OneDrive\\Desktop\\Projects\\Load-Aware-SAGE\\results\\latency_analysis\\latency_breakdown.png",
+      "C:\\Users\\jasui\\OneDrive\\Desktop\\Projects\\Load-Aware-SAGE\\results\\latency_analysis\\average_k_comparison.png",
+      "C:\\Users\\jasui\\OneDrive\\Desktop\\Projects\\Load-Aware-SAGE\\results\\latency_analysis\\token_comparison.png",
+      "C:\\Users\\jasui\\OneDrive\\Desktop\\Projects\\Load-Aware-SAGE\\results\\latency_analysis\\quality_vs_latency.png"
+    ]
+  }
+}

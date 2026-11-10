@@ -1,0 +1,36 @@
+config_name,stage_key,stage_name,mean_latency_ms,p50_latency_ms,p95_latency_ms,pct_of_total
+fixed_k2,dense_retrieval_ms,Dense Retrieval (FAISS),322.05,331.09,413.23,9.51
+fixed_k2,sparse_retrieval_ms,Sparse Retrieval (BM25),48.35,48.2,56.77,1.43
+fixed_k2,hybrid_fusion_ms,RRF Hybrid Fusion,0.1,0.1,0.12,0.0
+fixed_k2,feature_extraction_ms,Probe Feature Extraction,0.0,0.0,0.0,0.0
+fixed_k2,policy_inference_ms,Policy Prediction,0.0,0.0,0.0,0.0
+fixed_k2,context_preparation_ms,Context Preparation,0.01,0.01,0.02,0.0
+fixed_k2,llm_generation_ms,LLM Generation (Groq),3014.8,3659.47,4796.48,89.05
+fixed_k5,dense_retrieval_ms,Dense Retrieval (FAISS),306.83,324.87,367.29,5.74
+fixed_k5,sparse_retrieval_ms,Sparse Retrieval (BM25),50.05,50.78,55.5,0.94
+fixed_k5,hybrid_fusion_ms,RRF Hybrid Fusion,0.11,0.11,0.13,0.0
+fixed_k5,feature_extraction_ms,Probe Feature Extraction,0.0,0.0,0.0,0.0
+fixed_k5,policy_inference_ms,Policy Prediction,0.0,0.0,0.0,0.0
+fixed_k5,context_preparation_ms,Context Preparation,0.02,0.02,0.02,0.0
+fixed_k5,llm_generation_ms,LLM Generation (Groq),4986.08,5722.09,6591.75,93.32
+fixed_k10,dense_retrieval_ms,Dense Retrieval (FAISS),340.77,289.61,503.93,2.96
+fixed_k10,sparse_retrieval_ms,Sparse Retrieval (BM25),49.04,41.33,67.12,0.43
+fixed_k10,hybrid_fusion_ms,RRF Hybrid Fusion,0.12,0.11,0.16,0.0
+fixed_k10,feature_extraction_ms,Probe Feature Extraction,0.0,0.0,0.0,0.0
+fixed_k10,policy_inference_ms,Policy Prediction,0.0,0.0,0.0,0.0
+fixed_k10,context_preparation_ms,Context Preparation,0.03,0.02,0.03,0.0
+fixed_k10,llm_generation_ms,LLM Generation (Groq),11113.23,11054.07,11873.75,96.61
+fixed_k30,dense_retrieval_ms,Dense Retrieval (FAISS),350.31,338.32,475.41,1.33
+fixed_k30,sparse_retrieval_ms,Sparse Retrieval (BM25),47.72,44.14,56.2,0.18
+fixed_k30,hybrid_fusion_ms,RRF Hybrid Fusion,0.16,0.16,0.18,0.0
+fixed_k30,feature_extraction_ms,Probe Feature Extraction,0.0,0.0,0.0,0.0
+fixed_k30,policy_inference_ms,Policy Prediction,0.0,0.0,0.0,0.0
+fixed_k30,context_preparation_ms,Context Preparation,0.07,0.07,0.08,0.0
+fixed_k30,llm_generation_ms,LLM Generation (Groq),26008.27,27171.06,29233.26,98.49
+adaptive_sage,dense_retrieval_ms,Dense Retrieval (FAISS),300.41,247.75,467.98,7.48
+adaptive_sage,sparse_retrieval_ms,Sparse Retrieval (BM25),47.56,42.37,71.65,1.18
+adaptive_sage,hybrid_fusion_ms,RRF Hybrid Fusion,0.09,0.09,0.09,0.0
+adaptive_sage,feature_extraction_ms,Probe Feature Extraction,0.1,0.1,0.11,0.0
+adaptive_sage,policy_inference_ms,Policy Prediction,13.49,12.85,17.83,0.34
+adaptive_sage,context_preparation_ms,Context Preparation,0.01,0.01,0.02,0.0
+adaptive_sage,llm_generation_ms,LLM Generation (Groq),3653.92,3750.65,3999.88,90.99
