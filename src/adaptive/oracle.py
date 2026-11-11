@@ -18,7 +18,7 @@ Infeasibility / Missing Ground Truth:
 """
 
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 import time
 
 from src.config import (
@@ -35,6 +35,10 @@ from src.evaluation.benchmark_metrics import (
     compute_token_f1,
 )
 from src.generation.generator import GroqGenerator
+from src.generation.local_generator import LocalLLMGenerator
+
+# Type alias for supported generator backends
+AnyGenerator = Union[GroqGenerator, LocalLLMGenerator]
 from src.retrieval.features import FEATURE_NAMES, FeatureExtractor, QueryRetrievalFeatures
 from src.retrieval.hybrid import HybridRetriever
 from src.utils.logger import setup_logger
@@ -108,7 +112,7 @@ class QualityAwareOracle:
     def __init__(
         self,
         retriever: Optional[HybridRetriever] = None,
-        generator: Optional[GroqGenerator] = None,
+        generator: Optional[AnyGenerator] = None,
         candidate_k_values: Sequence[int] = CANDIDATE_K_VALUES,
         slo_latency_seconds: float = SLO_P95_LATENCY_SECONDS,
         quality_tie_tol: float = 1e-6,

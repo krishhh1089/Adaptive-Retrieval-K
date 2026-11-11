@@ -14585,3 +14585,49 @@ weighted avg       0.50      0.67      0.57         9
 2026-11-11 12:57:18 | INFO     | sage_policy:245 | Saved SAGE policy artifact to: C:\Users\Noor Ahmed\AppData\Local\Temp\pytest-of-Noor Ahmed\pytest-0\test_save_and_load0\test_sage_policy.pkl
 2026-11-11 12:57:18 | INFO     | sage_policy:267 | Loaded SAGE policy artifact from: C:\Users\Noor Ahmed\AppData\Local\Temp\pytest-of-Noor Ahmed\pytest-0\test_save_and_load0\test_sage_policy.pkl
 2026-11-11 12:57:18 | INFO     | latency_analyzer:89 | Saved stage latency breakdown to: C:\Users\Noor Ahmed\AppData\Local\Temp\pytest-of-Noor Ahmed\pytest-0\test_latency_analyzer_and_plot0\stage_latency.csv
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:29 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:48 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=20, max_depth=4, samples=30)...
+2026-11-11 19:27:48 | INFO     | local_generator:158 | LocalLLMGenerator initialised: model='qwen2.5:7b' base_url='http://localhost:11434' temperature=0.0 max_tokens=512 timeout=180.0s
+2026-11-11 19:27:48 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 19:27:48 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=10, max_depth=3, samples=30)...
+2026-11-11 19:27:48 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 19:27:48 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=10, max_depth=3, samples=30)...
+2026-11-11 19:27:48 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 19:27:48 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=10, max_depth=3, samples=30)...
+2026-11-11 19:27:48 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 19:27:48 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=20, max_depth=4, samples=30)...
+2026-11-11 19:27:48 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 19:27:48 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=20, max_depth=4, samples=30)...
+2026-11-11 19:27:48 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 19:27:48 | INFO     | sage_policy:217 | Evaluation Results: Accuracy=0.9667, MAE=0.6667
+2026-11-11 19:27:48 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=15, max_depth=3, samples=30)...
+2026-11-11 19:27:48 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 19:27:48 | INFO     | sage_policy:245 | Saved SAGE policy artifact to: C:\Users\Noor Ahmed\AppData\Local\Temp\pytest-of-Noor Ahmed\pytest-2\test_save_and_load0\test_sage_policy.pkl
+2026-11-11 19:27:48 | INFO     | sage_policy:267 | Loaded SAGE policy artifact from: C:\Users\Noor Ahmed\AppData\Local\Temp\pytest-of-Noor Ahmed\pytest-2\test_save_and_load0\test_sage_policy.pkl
+2026-11-11 19:27:49 | INFO     | latency_analyzer:89 | Saved stage latency breakdown to: C:\Users\Noor Ahmed\AppData\Local\Temp\pytest-of-Noor Ahmed\pytest-2\test_latency_analyzer_and_plot0\stage_latency.csv
+2026-11-11 19:28:56 | WARNING  | local_generator:339 | Empty generation returned by 'qwen2.5:7b' (finish_reason='stop', completion_tokens=10). Consider increasing GENERATION_MAX_TOKENS.
+2026-11-11 19:28:56 | WARNING  | local_generator:339 | Empty generation returned by 'qwen2.5:7b' (finish_reason='stop', completion_tokens=10). Consider increasing GENERATION_MAX_TOKENS.

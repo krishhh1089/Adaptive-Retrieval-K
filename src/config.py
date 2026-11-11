@@ -105,10 +105,20 @@ CANDIDATE_K_VALUES = [2, 3, 5, 7, 10, 15, 20, 25, 30]
 # ==========================================
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-GENERATION_TEMPERATURE = 0.0  # Greedy decoding for reproducible research evaluation
-GENERATION_MAX_TOKENS = 256
+GENERATION_TEMPERATURE = float(os.getenv("GENERATION_TEMPERATURE", "0.0"))  # Greedy decoding for reproducible research evaluation
+GENERATION_MAX_TOKENS = int(os.getenv("GENERATION_MAX_TOKENS", "512"))
 MAX_RETRIES = 3
 REQUEST_TIMEOUT_SECONDS = 30.0
+
+# ==========================================
+# 4b. Local LLM (Ollama) Parameters
+# ==========================================
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+OLLAMA_TIMEOUT_SECONDS = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "180.0"))
+
+# Active generation backend: "groq" or "ollama"
+GENERATION_BACKEND = os.getenv("GENERATION_BACKEND", "ollama")
 
 # ==========================================
 # 5. Original SAGE Baseline Parameters

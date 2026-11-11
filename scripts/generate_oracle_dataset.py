@@ -13,6 +13,15 @@ missing-ground-truth status separately for unevaluable queries without fabricati
 
 Experiment metadata is written to artifacts/metadata/experiments/oracle_experiment_v2.json
 strictly upon completion.
+
+Backend Selection:
+  Controlled by GENERATION_BACKEND env variable ("ollama" or "groq").
+  Default is "ollama" (local inference, no rate-limit pacing).
+
+Resume Cache Validation:
+  When --resume is used, the cached backend and model are validated against the
+  current configuration. If they differ, the script aborts to prevent silently
+  mixing labels from different backends or models. Use --force to start fresh.
 """
 
 import argparse
@@ -20,7 +29,7 @@ from datetime import datetime, timezone
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 import pandas as pd
 from tqdm import tqdm
 
@@ -38,13 +47,97 @@ from src.adaptive.oracle import (
 )
 from src.data.chunker import DocumentChunker
 from src.data.loader import NQDataLoader, QuestionRecord
-from src.generation.generator import GroqGenerator
 from src.retrieval.features import FEATURE_NAMES
 from src.retrieval.hybrid import HybridRetriever
 from src.utils.logger import setup_logger
 
 logger = setup_logger("generate_oracle")
 
+# ---------------------------------------------------------------------------
+# Resume cache validation helpers
+# ---------------------------------------------------------------------------
+
+_BACKEND_META_PATH = config.EXPERIMENTS_METADATA_DIR / "oracle_backend_identity.json"
+
+
+def _write_backend_identity(backend: str, model_id: str) -> None:
+    """Persists the active backend and model identity for resume validation."""
+    _BACKEND_META_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(_BACKEND_META_PATH, "w", encoding="utf-8") as f:
+        json.dump({"backend": backend, "model_id": model_id}, f, indent=2)
+
+
+def _validate_resume_identity(backend: str, model_id: str) -> None:
+    """
+    Validates that cached evaluations were generated with the same backend and model.
+    Aborts if they differ to prevent silent mixing of Groq and local labels.
+    """
+    if not _BACKEND_META_PATH.exists():
+        # No prior identity file — first run. Write and continue.
+        _write_backend_identity(backend, model_id)
+        return
+
+    with open(_BACKEND_META_PATH, encoding="utf-8") as f:
+        saved = json.load(f)
+
+    saved_backend = saved.get("backend", "")
+    saved_model = saved.get("model_id", "")
+
+    if saved_backend != backend or saved_model != model_id:
+        raise SystemExit(
+            f"\n{'='*70}\n"
+            f"RESUME VALIDATION FAILED — Backend or model mismatch.\n"
+            f"  Cached evaluations: backend={saved_backend!r}, model={saved_model!r}\n"
+            f"  Current config:     backend={backend!r},       model={model_id!r}\n\n"
+            f"Mixing labels from different backends or models is not permitted.\n"
+            f"Options:\n"
+            f"  1. Revert to the original backend/model.\n"
+            f"  2. Run with --force to discard cached evaluations and start fresh.\n"
+            f"{'='*70}\n"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Generator factory
+# ---------------------------------------------------------------------------
+
+def _build_generator(backend: str):
+    """Instantiates the appropriate generator based on GENERATION_BACKEND."""
+    if backend == "ollama":
+        from src.generation.local_generator import (
+            LocalLLMGenerator,
+            OllamaConnectionError,
+            OllamaModelNotFoundError,
+        )
+        generator = LocalLLMGenerator()
+        # Pre-flight checks
+        if not generator.check_server():
+            raise SystemExit(
+                f"\nOllama server not reachable at {generator.base_url!r}.\n"
+                "Start it with:  ollama serve\n"
+            )
+        if not generator.check_model_available():
+            raise SystemExit(
+                f"\nModel {generator.model!r} is not installed in Ollama.\n"
+                f"Download it with:  ollama pull {generator.model}\n"
+            )
+        return generator, generator.model_id
+
+    elif backend == "groq":
+        from src.generation.generator import GroqGenerator
+        generator = GroqGenerator(pace_for_rate_limit=True, sdk_max_retries=0)
+        return generator, f"groq/{generator.model}"
+
+    else:
+        raise ValueError(
+            f"Unknown GENERATION_BACKEND={backend!r}. "
+            "Set GENERATION_BACKEND to 'ollama' or 'groq'."
+        )
+
+
+# ---------------------------------------------------------------------------
+# Resume loader
+# ---------------------------------------------------------------------------
 
 def _load_existing_evaluations(csv_path: Path) -> Dict[Tuple[str, int], CandidateEvaluation]:
     """Loads previously completed non-error evaluations for safe resuming."""
@@ -83,6 +176,10 @@ def _load_existing_evaluations(csv_path: Path) -> Dict[Tuple[str, int], Candidat
     return existing
 
 
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate quality-aware SAGE Oracle datasets.")
     parser.add_argument(
@@ -119,13 +216,34 @@ def main() -> None:
     print("PHASE 2 & 3: QUALITY-AWARE, SLO-CONSTRAINED ORACLE DATASET GENERATION")
     print("=" * 70)
 
+    # --- Backend configuration ---
+    backend = config.GENERATION_BACKEND.lower()
+    print(f"\nGeneration backend : {backend.upper()}")
+
+    generator, model_id = _build_generator(backend)
+    print(f"Model ID           : {model_id}")
+    print(f"Temperature        : {config.GENERATION_TEMPERATURE}")
+    print(f"Max tokens         : {config.GENERATION_MAX_TOKENS}")
+
+    # --- Resume cache validation ---
+    if args.resume and not args.force:
+        _validate_resume_identity(backend, model_id)
+        print(f"Resume identity    : backend={backend!r} model={model_id!r} ✓")
+    elif args.force:
+        # Reset backend identity on --force
+        _write_backend_identity(backend, model_id)
+        print("Force mode: cleared cached identity, starting fresh.")
+    else:
+        # First run: record identity
+        _write_backend_identity(backend, model_id)
+
     # 1. Load dataset and separate eligible vs missing ground truth
     loader = NQDataLoader()
     all_questions = loader.load_questions()
     eligible_all = [q for q in all_questions if QualityAwareOracle.is_query_eligible(q)]
     excluded_all = [q for q in all_questions if not QualityAwareOracle.is_query_eligible(q)]
 
-    print(f"Total dataset records          : {len(all_questions)}")
+    print(f"\nTotal dataset records          : {len(all_questions)}")
     print(f"Eligible (short answers exist) : {len(eligible_all)}")
     print(f"Excluded (missing ground truth): {len(excluded_all)}")
 
@@ -149,7 +267,7 @@ def main() -> None:
     )
     excluded_df.to_csv(excluded_path, index=False)
 
-    # 2. Initialize retrieval and generation pipelines (preserving exact architecture)
+    # 2. Initialize retrieval pipeline (architecture preserved)
     chunker = DocumentChunker()
     chunks = chunker.load_chunks()
     retriever = HybridRetriever(
@@ -158,9 +276,6 @@ def main() -> None:
     )
     retriever.initialize(chunks)
 
-    # Enable proactive TPM pacing outside timed LLM windows so free-tier 8k TPM pauses do not distort L(q, K)
-    generator = GroqGenerator(pace_for_rate_limit=True, sdk_max_retries=0)
-
     oracle = QualityAwareOracle(
         retriever=retriever,
         generator=generator,
@@ -168,7 +283,7 @@ def main() -> None:
         slo_latency_seconds=args.slo_seconds,
     )
 
-    # Warm-up dense encoder once so cold-start BGE-M3 load (~15-20s) never contaminates query probe/evaluation latency
+    # Warm-up dense encoder once so cold-start BGE-M3 load never contaminates latency
     print("\nWarming up BGE-M3 dense encoder (eliminating cold-start bias)...")
     _ = retriever.search(eval_queries[0].question if eval_queries else "warmup query", top_k=2)
 
@@ -202,7 +317,7 @@ def main() -> None:
     )
 
     for q in tqdm(eval_queries, desc="Oracle Query Evaluation"):
-        # Step A: Extract inference-time probe features independently of candidate K or quality
+        # Step A: Extract inference-time probe features (leakage-free)
         features = oracle.extract_probe_features(q)
 
         # Step B: Evaluate every candidate K
@@ -246,7 +361,7 @@ def main() -> None:
                 )
             )
 
-        # Flush all 3 datasets incrementally for crash/quota resilience
+        # Flush all 3 datasets incrementally for crash resilience
         _flush_all()
 
     # 4. Persist final 3 Oracle datasets
@@ -272,7 +387,7 @@ def main() -> None:
         else {}
     )
 
-    # 5. Record honest Experiment Metadata upon completion
+    # 5. Record Experiment Metadata upon completion
     config.EXPERIMENTS_METADATA_DIR.mkdir(parents=True, exist_ok=True)
     meta_path = config.EXPERIMENTS_METADATA_DIR / "oracle_experiment_v2.json"
     experiment_meta = {
@@ -288,11 +403,17 @@ def main() -> None:
             "tie_breaking_rule": "smallest_k_among_equivalent_max_quality",
         },
         "latency_slo_seconds": float(args.slo_seconds),
+        "latency_slo_note": (
+            "SLO measures local end-to-end inference latency (retrieval + local LLM generation). "
+            "No rate-limit pacing is included. Results are hardware-dependent."
+        ),
         "generation_configuration": {
-            "provider": "Groq",
-            "model": config.GROQ_MODEL,
+            "backend": backend,
+            "model_id": model_id,
             "temperature": config.GENERATION_TEMPERATURE,
             "max_tokens": config.GENERATION_MAX_TOKENS,
+            "ollama_base_url": config.OLLAMA_BASE_URL if backend == "ollama" else None,
+            "ollama_timeout_seconds": config.OLLAMA_TIMEOUT_SECONDS if backend == "ollama" else None,
         },
         "retrieval_configuration": {
             "dense_model": config.DENSE_MODEL_NAME,
@@ -326,6 +447,7 @@ def main() -> None:
     print("\n" + "=" * 70)
     print("ORACLE GENERATION SUMMARY")
     print("=" * 70)
+    print(f"Backend                        : {backend.upper()} ({model_id})")
     print(f"Evaluated Queries              : {len(eval_queries)} / {len(eligible_all)} eligible")
     print(f"Excluded (Missing GT)          : {len(excluded_all)}")
     print(f"Feasible Queries (<= {args.slo_seconds:.1f}s SLO) : {n_feasible}")
@@ -340,4 +462,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
