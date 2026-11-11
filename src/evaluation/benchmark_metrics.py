@@ -125,6 +125,36 @@ def compute_token_f1(generated_answer: str, gold_answers: Sequence[str]) -> floa
     return float(max_f1)
 
 
+def is_abstention(generated_answer: str) -> bool:
+    """
+    Detects whether the LLM explicitly abstained due to insufficient context.
+    """
+    if not generated_answer:
+        return True
+    norm_gen = normalize_text(generated_answer)
+    abstention_phrases = (
+        "cannot answer based on provided context",
+        "cannot be determined from provided context",
+        "i cannot answer based on provided context",
+        "cannot answer based on context",
+    )
+    return any(phrase in norm_gen for phrase in abstention_phrases)
+
+
+def compute_answer_quality(generated_answer: str, gold_answers: Sequence[str]) -> Optional[float]:
+    """
+    Computes answer quality Q(q, K) in [0.0, 1.0] against ground-truth short answers.
+    Uses unigram Token F1 from the project's existing evaluation methodology,
+    explicitly scoring refusals as 0.0 and preserving None when ground truth is missing.
+    """
+    clean_golds = [g.strip() for g in gold_answers if g and g.strip()]
+    if not clean_golds:
+        return None
+    if is_abstention(generated_answer):
+        return 0.0
+    return compute_token_f1(generated_answer, clean_golds)
+
+
 def compute_faithfulness(generated_answer: str, context_passages: Sequence[ScoredPassage]) -> float:
     """
     Computes unigram faithfulness (hallucination guard):

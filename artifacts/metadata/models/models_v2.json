@@ -1,0 +1,119 @@
+{
+  "version": "v2",
+  "model_type": "RandomForestClassifier",
+  "trained_at_utc": "2026-11-11T04:35:37.190616+00:00",
+  "oracle_experiment_metadata": "artifacts\\metadata\\experiments\\oracle_experiment_v2.json",
+  "hyperparameters": {
+    "n_estimators": 100,
+    "max_depth": 10,
+    "random_state": 42,
+    "criterion": "gini"
+  },
+  "feature_space": {
+    "feature_count": 10,
+    "feature_names": [
+      "query_char_len",
+      "query_word_count",
+      "query_type",
+      "query_complexity",
+      "dense_top1_score",
+      "dense_score_drop_1_2",
+      "bm25_top1_score",
+      "bm25_score_drop_1_2",
+      "jaccard_top2",
+      "time_remaining_ms"
+    ]
+  },
+  "candidate_k_values": [
+    2,
+    3,
+    5,
+    7,
+    10,
+    15,
+    20,
+    25,
+    30
+  ],
+  "dataset": {
+    "source": "experiments\\oracle_results\\oracle_dataset.csv",
+    "total_samples": 41,
+    "train_samples": 32,
+    "val_samples": 9,
+    "query_id_overlap": 0,
+    "label_distribution": {
+      "2": 21,
+      "3": 4,
+      "5": 6,
+      "7": 1,
+      "10": 3,
+      "15": 1,
+      "20": 4,
+      "30": 1
+    }
+  },
+  "evaluation": {
+    "train_accuracy": 1.0,
+    "train_mae": 0.0,
+    "val_accuracy": 0.6666666666666666,
+    "val_mae": 1.5555555555555556,
+    "confusion_matrix_labels": [
+      2,
+      3,
+      5,
+      10,
+      20
+    ],
+    "confusion_matrix": [
+      [
+        6,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "feature_importances": {
+      "bm25_top1_score": 0.184928824046162,
+      "time_remaining_ms": 0.15492112944892408,
+      "bm25_score_drop_1_2": 0.12874816369689268,
+      "dense_top1_score": 0.12443757291113268,
+      "dense_score_drop_1_2": 0.12005533529199712,
+      "query_char_len": 0.11514194092421796,
+      "query_type": 0.06146664921878162,
+      "jaccard_top2": 0.06054510073186952,
+      "query_word_count": 0.049755283730022325,
+      "query_complexity": 0.0
+    }
+  },
+  "artifact_path": "artifacts\\models\\random_forest\\sage_policy.pkl",
+  "evaluation_results_path": "experiments\\oracle_results\\policy_evaluation_results.json"
+}

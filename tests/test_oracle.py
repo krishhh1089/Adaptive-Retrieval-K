@@ -1,123 +1,193 @@
 """
 tests/test_oracle.py
 
-Unit and integration tests for the SAGE Oracle Decision Rule and training sample generator.
+Unit tests for the redesigned quality-aware, SLO-constrained SAGE Oracle.
 """
 
-import sys
-from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 import pytest
 
-# Add project root to sys.path
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.adaptive.oracle import OracleLabeler, OracleTrainingSample
-from src.config import CANDIDATE_K_VALUES
-from src.retrieval.hybrid import ScoredPassage
-
-
-def test_oracle_check_hit():
-    """Validates answer matching logic across passages."""
-    passages = [
-        ScoredPassage(
-            chunk_index=0,
-            chunk_id="c0",
-            doc_id="d1",
-            title="T",
-            text="The walking dead season 8 finale aired on March 18, 2018.",
-            rrf_score=0.5,
-        ),
-        ScoredPassage(
-            chunk_index=1,
-            chunk_id="c1",
-            doc_id="d2",
-            title="T",
-            text="Another unrelated text about science.",
-            rrf_score=0.3,
-        ),
-    ]
-
-    # Matching hit
-    assert OracleLabeler.check_hit(passages, ["March 18, 2018"]) is True
-    assert OracleLabeler.check_hit(passages, ["march 18, 2018"]) is True  # case insensitive
-    # Non-matching
-    assert OracleLabeler.check_hit(passages, ["December 2019"]) is False
-    # Empty edge cases
-    assert OracleLabeler.check_hit([], ["March 18, 2018"]) is False
-    assert OracleLabeler.check_hit(passages, []) is False
+from src.adaptive.oracle import (
+    CandidateEvaluation,
+    OracleSelectionResult,
+    OracleTrainingRow,
+    QualityAwareOracle,
+)
+from src.data.loader import QuestionRecord
+from src.evaluation.benchmark_metrics import compute_answer_quality
+from src.generation.generator import GenerationResult
+from src.retrieval.features import FEATURE_NAMES, QueryRetrievalFeatures
+from src.retrieval.hybrid import HybridRetrievalResult, ScoredPassage
 
 
-def test_oracle_decision_rule_minimal_k():
-    """
-    SAGE Decision Rule: K* must be the MINIMAL budget that achieves a hit.
-    """
-    labeler = OracleLabeler(retriever=None, candidate_k_values=[2, 3, 5, 7, 10, 15, 20, 25, 30])
-
-    # Case 1: Answer is present at passage index 0 (Hit@2 is True) -> K* must be 2
-    p_hit_at_1 = [
-        ScoredPassage(0, "c0", "d1", "T", "Answer is Alpha", 0.5),
-        ScoredPassage(1, "c1", "d1", "T", "Beta", 0.4),
-        ScoredPassage(2, "c2", "d1", "T", "Gamma", 0.3),
-    ]
-    k_star, hits = labeler.compute_oracle_k(p_hit_at_1, ["Alpha"], total_latency_ms=100.0)
-    assert k_star == 2
-    assert hits[2] == 1
-    assert hits[5] == 1
-
-    # Case 2: Answer is only at passage index 4 (Hit@2=0, Hit@3=0, Hit@5=1) -> K* must be 5
-    p_hit_at_5 = [
-        ScoredPassage(0, "c0", "d1", "T", "Filler 1", 0.5),
-        ScoredPassage(1, "c1", "d1", "T", "Filler 2", 0.4),
-        ScoredPassage(2, "c2", "d1", "T", "Filler 3", 0.3),
-        ScoredPassage(3, "c3", "d1", "T", "Filler 4", 0.2),
-        ScoredPassage(4, "c4", "d1", "T", "Answer is Epsilon", 0.1),
-    ]
-    k_star_5, hits_5 = labeler.compute_oracle_k(p_hit_at_5, ["Epsilon"], total_latency_ms=100.0)
-    assert k_star_5 == 5
-    assert hits_5[2] == 0
-    assert hits_5[3] == 0
-    assert hits_5[5] == 1
-
-    # Case 3: Answer never found anywhere -> K* must fallback to minimum budget (2)
-    k_star_miss, hits_miss = labeler.compute_oracle_k(p_hit_at_5, ["NonExistent"], total_latency_ms=100.0)
-    assert k_star_miss == 2
-    assert all(h == 0 for h in hits_miss.values())
-
-
-def test_oracle_live_sample():
-    """Integration check generating Oracle labels for the first 3 dataset questions."""
-    from src.data.chunker import DocumentChunker
-    from src.data.loader import NQDataLoader
-    from src.retrieval.hybrid import HybridRetriever
-    from src import config
-
-    chunker = DocumentChunker()
-    chunks = chunker.load_chunks()
-    retriever = HybridRetriever(
-        rrf_k=config.RRF_K_CONSTANT, candidate_pool=config.RETRIEVAL_CANDIDATE_POOL
+def make_candidate_eval(
+    qid: str,
+    k: int,
+    quality: float,
+    latency_ms: float,
+    slo_ms: float = 5000.0,
+    status: str = "evaluated",
+) -> CandidateEvaluation:
+    return CandidateEvaluation(
+        query_id=qid,
+        query="sample question",
+        candidate_k=k,
+        generated_answer="sample answer",
+        ground_truth_answer="sample answer",
+        answer_quality=quality if status == "evaluated" else None,
+        exact_match=1 if quality == 1.0 else 0,
+        token_f1=quality if status == "evaluated" else None,
+        answer_presence=1 if quality > 0 else 0,
+        retrieval_hit=1,
+        retrieval_latency_ms=300.0,
+        generation_latency_ms=max(0.0, latency_ms - 300.0),
+        end_to_end_latency_ms=latency_ms,
+        slo_satisfied=latency_ms <= slo_ms,
+        evaluation_status=status,
     )
-    retriever.initialize(chunks)
-
-    loader = NQDataLoader()
-    questions = loader.load_questions()
-    answerable_sample = [q for q in questions if q.has_answer][:3]
-
-    labeler = OracleLabeler(retriever=retriever)
-
-    for q in answerable_sample:
-        sample = labeler.process_query(q)
-        flat = sample.to_flat_dict()
-        assert "oracle_k" in flat
-        assert flat["oracle_k"] in CANDIDATE_K_VALUES
-        assert len(sample.features.to_array()) == 10
-        print(f"\nQID: {sample.qid} | Q: '{sample.question[:40]}...'")
-        print(f"  Gold: {sample.gold_answers}")
-        print(f"  Oracle K*: {sample.oracle_k}")
-        print(f"  Hit Map: {sample.hit_at_candidate_k}")
 
 
-if __name__ == "__main__":
-    pytest.main(["-v", __file__])
+def test_query_eligibility_and_missing_gt_preservation():
+    eligible_q = QuestionRecord(qid="q_1", question="Who?", target_doc_id="d1", short_answers=["Apollo"], has_answer=True)
+    missing_q = QuestionRecord(qid="q_2", question="Why?", target_doc_id="d2", short_answers=[], has_answer=False)
+    blank_q = QuestionRecord(qid="q_3", question="What?", target_doc_id="d3", short_answers=["  "], has_answer=True)
 
+    assert QualityAwareOracle.is_query_eligible(eligible_q) is True
+    assert QualityAwareOracle.is_query_eligible(missing_q) is False
+    assert QualityAwareOracle.is_query_eligible(blank_q) is False
+
+    oracle = QualityAwareOracle(slo_latency_seconds=5.0)
+    ev = oracle.evaluate_candidate(missing_q, candidate_k=2)
+    assert ev.evaluation_status == "missing_ground_truth"
+    assert ev.answer_quality is None
+    assert ev.token_f1 is None
+
+    sel = oracle.select_oracle_k(missing_q.qid, missing_q.question, [ev], is_eligible=False)
+    assert sel.ground_truth_status == "missing_ground_truth"
+    assert sel.has_feasible_candidate is False
+    assert sel.selected_k is None
+    assert sel.selection_reason == "missing_ground_truth_excluded"
+
+
+def test_answer_quality_scoring_and_abstention():
+    assert compute_answer_quality("Paris", []) is None
+    assert compute_answer_quality("I cannot answer based on the provided context.", ["Paris"]) == 0.0
+    assert compute_answer_quality("I cannot answer based on the provided context.", ["context"]) == 0.0
+    assert compute_answer_quality("Paris", ["Paris"]) == 1.0
+    partial = compute_answer_quality("The capital is Paris.", ["Paris"])
+    assert 0.0 < partial < 1.0
+
+
+def test_oracle_maximizes_quality_subject_to_slo():
+    oracle = QualityAwareOracle(slo_latency_seconds=5.0)
+    evals = [
+        make_candidate_eval("q_1", 2, quality=0.25, latency_ms=1200.0),
+        make_candidate_eval("q_1", 3, quality=0.50, latency_ms=1800.0),
+        make_candidate_eval("q_1", 5, quality=0.90, latency_ms=3400.0),
+        make_candidate_eval("q_1", 10, quality=1.00, latency_ms=5200.0),  # Infeasible (> 5000ms)
+        make_candidate_eval("q_1", 30, quality=1.00, latency_ms=15000.0), # Infeasible (> 5000ms)
+    ]
+
+    res = oracle.select_oracle_k("q_1", "sample", evals, is_eligible=True)
+    assert res.has_feasible_candidate is True
+    assert res.selected_k == 5
+    assert res.selected_answer_quality == 0.90
+    assert res.selected_latency_ms == 3400.0
+    assert res.feasible_candidate_count == 3
+    assert res.selection_reason == "max_quality_within_slo"
+
+
+def test_oracle_tie_breaker_prefers_smaller_k():
+    oracle = QualityAwareOracle(slo_latency_seconds=5.0)
+    evals = [
+        make_candidate_eval("q_2", 2, quality=0.0, latency_ms=1000.0),
+        make_candidate_eval("q_2", 3, quality=0.80, latency_ms=2100.0),
+        make_candidate_eval("q_2", 5, quality=0.80, latency_ms=2900.0),
+        make_candidate_eval("q_2", 7, quality=0.80, latency_ms=4100.0),
+    ]
+
+    res = oracle.select_oracle_k("q_2", "sample", evals, is_eligible=True)
+    assert res.has_feasible_candidate is True
+    assert res.selected_k == 3
+    assert res.selection_reason == "max_quality_tie_smallest_k"
+
+
+def test_oracle_rejects_infeasible_queries():
+    oracle = QualityAwareOracle(slo_latency_seconds=5.0)
+    evals = [
+        make_candidate_eval("q_3", 2, quality=1.0, latency_ms=5100.0),
+        make_candidate_eval("q_3", 5, quality=1.0, latency_ms=6500.0),
+    ]
+
+    res = oracle.select_oracle_k("q_3", "sample", evals, is_eligible=True)
+    assert res.has_feasible_candidate is False
+    assert res.selected_k is None
+    assert res.selected_answer_quality is None
+    assert res.feasible_candidate_count == 0
+    assert res.selection_reason == "no_feasible_candidate_within_slo"
+
+
+def test_oracle_training_row_leakage_free():
+    features = QueryRetrievalFeatures(
+        query_char_len=40.0,
+        query_word_count=8.0,
+        query_type=1.0,
+        query_complexity=0.0,
+        dense_top1_score=0.75,
+        dense_score_drop_1_2=0.10,
+        bm25_top1_score=22.0,
+        bm25_score_drop_1_2=2.0,
+        jaccard_top2=0.33,
+        time_remaining_ms=4600.0,
+    )
+    row = OracleTrainingRow(query_id="q_1", features=features, oracle_k=5).to_dict()
+
+    expected_keys = {"query_id", *FEATURE_NAMES, "oracle_k"}
+    assert set(row.keys()) == expected_keys
+    # Confirm leakage columns are strictly absent
+    forbidden = {
+        "ground_truth_answer",
+        "generated_answer",
+        "answer_quality",
+        "end_to_end_latency_ms",
+        "slo_satisfied",
+    }
+    assert not (set(row.keys()) & forbidden)
+
+
+def test_evaluate_candidate_excludes_rate_limit_sleep():
+    mock_retriever = MagicMock()
+    mock_passage = ScoredPassage(0, "c0", "d0", "Title", "The capital of France is Paris.", 0.5)
+    mock_retriever.search.return_value = HybridRetrievalResult(
+        query="What is the capital of France?",
+        passages=[mock_passage],
+        dense_latency_ms=250.0,
+        sparse_latency_ms=40.0,
+        fusion_latency_ms=0.1,
+        total_retrieval_latency_ms=290.1,
+    )
+
+    mock_generator = MagicMock()
+    mock_generator.generate.return_value = GenerationResult(
+        query="What is the capital of France?",
+        context_used="context",
+        num_passages=1,
+        generated_answer="Paris",
+        prompt_tokens=100,
+        completion_tokens=10,
+        total_tokens=110,
+        latency_ms=900.0,
+        model_id="openai/gpt-oss-120b",
+        rate_limit_wait_ms=0.0,
+    )
+
+    oracle = QualityAwareOracle(retriever=mock_retriever, generator=mock_generator, slo_latency_seconds=5.0)
+    record = QuestionRecord(qid="q_10", question="What is the capital of France?", target_doc_id="d0", short_answers=["Paris"], has_answer=True)
+
+    ev = oracle.evaluate_candidate(record, candidate_k=2)
+    assert ev.evaluation_status == "evaluated"
+    assert ev.answer_quality == 1.0
+    assert ev.exact_match == 1
+    assert ev.slo_satisfied is True
+    assert ev.end_to_end_latency_ms >= 0.0

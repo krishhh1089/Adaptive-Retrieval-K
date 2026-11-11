@@ -9,6 +9,7 @@ Integrates SAGE adaptive retrieval budget allocation using lightweight probe fea
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 import os
+import re
 import time
 
 from groq import Groq, RateLimitError, APIError
@@ -50,6 +51,7 @@ class GenerationResult:
     total_tokens: int
     latency_ms: float
     model_id: str
+    rate_limit_wait_ms: float = 0.0
 
 
 @dataclass
@@ -75,6 +77,9 @@ class GroqGenerator:
         model: str = GROQ_MODEL,
         temperature: float = GENERATION_TEMPERATURE,
         max_tokens: int = GENERATION_MAX_TOKENS,
+        pace_for_rate_limit: bool = False,
+        sdk_max_retries: int = 0,
+        max_rate_limit_wait_seconds: float = 90.0,
     ):
         self.api_key = api_key or GROQ_API_KEY
         if not self.api_key:
@@ -85,7 +90,68 @@ class GroqGenerator:
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.client = Groq(api_key=self.api_key, timeout=REQUEST_TIMEOUT_SECONDS)
+        self.pace_for_rate_limit = pace_for_rate_limit
+        self.max_rate_limit_wait_seconds = max_rate_limit_wait_seconds
+        # Disable SDK-level silent retries by default so latency_ms never hides 429 sleeps
+        self.client = Groq(
+            api_key=self.api_key,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+            max_retries=sdk_max_retries,
+        )
+        self._remaining_tokens: Optional[int] = None
+        self._tokens_reset_at: float = 0.0
+
+    @staticmethod
+    def _parse_reset_seconds(value: Optional[str]) -> float:
+        """Parses rate-limit reset strings such as '674ms', '1m26.4s', or '12.5'."""
+        if not value:
+            return 0.0
+        total_sec = 0.0
+        matched = False
+        for num, unit in re.findall(r"(\d+(?:\.\d+)?)\s*(ms|s|m|h)?", str(value).lower()):
+            if not num:
+                continue
+            matched = True
+            val = float(num)
+            if unit == "ms":
+                total_sec += val / 1000.0
+            elif unit == "m":
+                total_sec += val * 60.0
+            elif unit == "h":
+                total_sec += val * 3600.0
+            else:
+                total_sec += val
+        return total_sec if matched else 0.0
+
+    def _update_rate_limit_state(self, headers: Any) -> None:
+        if not headers:
+            return
+        rem = headers.get("x-ratelimit-remaining-tokens")
+        rst = headers.get("x-ratelimit-reset-tokens")
+        if rem is not None:
+            try:
+                self._remaining_tokens = int(float(rem))
+            except (ValueError, TypeError):
+                pass
+        if rst is not None:
+            reset_sec = self._parse_reset_seconds(rst)
+            self._tokens_reset_at = time.perf_counter() + reset_sec
+
+    def _wait_if_rate_limited(self, estimated_tokens: int) -> float:
+        if not self.pace_for_rate_limit or self._remaining_tokens is None:
+            return 0.0
+        now = time.perf_counter()
+        if now >= self._tokens_reset_at:
+            return 0.0
+        if estimated_tokens > self._remaining_tokens:
+            wait_sec = max(0.0, (self._tokens_reset_at - now) + 0.5)
+            logger.info(
+                f"Proactive TPM pacing: need ~{estimated_tokens} tokens, remaining={self._remaining_tokens}. "
+                f"Sleeping {wait_sec:.2f}s outside timed inference window..."
+            )
+            time.sleep(wait_sec)
+            return wait_sec * 1000.0
+        return 0.0
 
     @staticmethod
     def format_context(passages: List[ScoredPassage], max_tokens_budget: Optional[int] = None) -> str:
@@ -125,13 +191,17 @@ class GroqGenerator:
             {"role": "user", "content": user_prompt},
         ]
 
+        estimated_tokens = max(1, (len(SYSTEM_PROMPT) + len(user_prompt)) // 3 + self.max_tokens)
         retries = 0
+        max_allowed_retries = max(MAX_RETRIES, 6) if self.pace_for_rate_limit else MAX_RETRIES
+        rate_limit_wait_ms = 0.0
         last_error = None
 
-        while retries <= MAX_RETRIES:
+        while retries <= max_allowed_retries:
+            rate_limit_wait_ms += self._wait_if_rate_limited(estimated_tokens)
             try:
                 t0 = time.perf_counter()
-                response = self.client.chat.completions.create(
+                raw_response = self.client.chat.completions.with_raw_response.create(
                     model=self.model,
                     messages=messages,
                     temperature=self.temperature,
@@ -139,7 +209,9 @@ class GroqGenerator:
                 )
                 latency_ms = (time.perf_counter() - t0) * 1000.0
 
-                generated_answer = response.choices[0].message.content.strip()
+                self._update_rate_limit_state(raw_response.headers)
+                response = raw_response.parse()
+                generated_answer = (response.choices[0].message.content or "").strip()
                 usage = response.usage
 
                 return GenerationResult(
@@ -152,22 +224,38 @@ class GroqGenerator:
                     total_tokens=usage.total_tokens if usage else 0,
                     latency_ms=latency_ms,
                     model_id=self.model,
+                    rate_limit_wait_ms=rate_limit_wait_ms,
                 )
 
             except RateLimitError as e:
                 retries += 1
-                wait_time = 2 ** retries
-                logger.warning(f"Groq RateLimit encountered. Retrying in {wait_time}s... ({retries}/{MAX_RETRIES})")
+                resp_headers = getattr(getattr(e, "response", None), "headers", None)
+                self._update_rate_limit_state(resp_headers)
+                retry_after = self._parse_reset_seconds(resp_headers.get("retry-after") if resp_headers else None)
+                if retry_after > self.max_rate_limit_wait_seconds:
+                    raise RuntimeError(
+                        f"Groq rate-limit quota exhausted (retry-after={retry_after:.1f}s > "
+                        f"max {self.max_rate_limit_wait_seconds:.1f}s): {e}"
+                    ) from e
+                wait_time = max(retry_after + 0.5, float(2 ** min(retries, 5)))
+                logger.warning(
+                    f"Groq RateLimit encountered. Retrying in {wait_time:.2f}s... "
+                    f"({retries}/{max_allowed_retries})"
+                )
                 time.sleep(wait_time)
+                rate_limit_wait_ms += wait_time * 1000.0
                 last_error = e
 
             except APIError as e:
                 retries += 1
+                if retries > MAX_RETRIES:
+                    last_error = e
+                    break
                 logger.error(f"Groq APIError: {e}. Retrying... ({retries}/{MAX_RETRIES})")
                 time.sleep(1)
                 last_error = e
 
-        raise RuntimeError(f"Failed to generate answer after {MAX_RETRIES} retries. Last error: {last_error}")
+        raise RuntimeError(f"Failed to generate answer after {retries} retries. Last error: {last_error}")
 
     def generate_with_sage(
         self,

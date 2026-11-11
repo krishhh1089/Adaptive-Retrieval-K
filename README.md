@@ -8,10 +8,10 @@ Inspired by the research paper *SAGE: SLO-Aware Adaptive Retrieval for Productio
 
 ## Key Research Highlights
 
-* **Adaptive Retrieval Policy (\(\pi(q) \rightarrow K\))**: Replaces static retrieval budgets with a lightweight Random Forest model that predicts the minimal sufficient passage count for each query.
-* **Lightweight \(k=2\) Retrieval Probe**: Extracts early retrieval signals (dense/sparse confidence scores, score margins, and sparse-dense agreement) with negligible overhead (\(<14\text{ ms}\)).
-* **Dramatic Efficiency Gains**: Adaptive SAGE achieves an **84.88% token reduction** and **84.79% latency reduction** over fixed \(K=30\) retrieval while preserving answer quality.
-* **Strict SLO Compliance**: Under steady-state execution, Adaptive SAGE achieves a \(P95\) latency of **4.28s**, strictly meeting the \(P95 \le 5.0\text{s}\) SLO threshold, while Fixed \(K=30\) severely violates it at **29.63s**.
+* **Adaptive Retrieval Policy (\(\pi(q) \rightarrow K\))**: Replaces static retrieval budgets with a lightweight Random Forest model trained to predict query-level passage budgets.
+* **Quality-Aware, SLO-Constrained Oracle**: Selects \(K^* = \arg\max_K Q(q, K)\) subject to \(L(q, K) \le 5.0\text{s}\), using answer quality (Token F1 with explicit abstention handling) and smallest-\(K\) tie-breaking rather than passage containment alone.
+* **Lightweight \(k=2\) Retrieval Probe**: Extracts early retrieval signals (dense/sparse confidence scores, score margins, and sparse-dense overlap) with negligible inference overhead.
+* **Leakage-Free Training Pipeline**: Strictly separates candidate generation/evaluation telemetry from model input features (`FEATURE_NAMES`) and enforces query-grouped train/validation splits.
 
 ---
 
@@ -24,33 +24,12 @@ Inspired by the research paper *SAGE: SLO-Aware Adaptive Retrieval for Productio
 | **Phase 5** | Indexing: Dense (`BGE-M3` + `FAISS IndexFlatIP`) & Sparse (`BM25Okapi`) | Completed |
 | **Phase 6** | Research-Aligned 10-Feature Probe Extraction | Completed |
 | **Phase 7** | LLM Generation Engine (`Groq` `openai/gpt-oss-120b`, greedy decoding) | Completed |
-| **Phase 8.1** | SAGE Oracle Decision Rule & Dataset Generation (\(K^*\) labels) | Completed |
-| **Phase 8.2** | Random Forest Policy Training (\(n=100\), \(\text{max\_depth}=10\)) | Completed |
-| **Phase 8.3–8.4** | Baseline Benchmarking & Stage-Wise Latency Profiling | Completed |
+| **Phase 8.1** | Quality-Aware Oracle Pipeline (\(K^*\) labels, 3 separated datasets) | Completed (41/41 eligible queries, 369 candidate evaluations) |
+| **Phase 8.2** | Random Forest Policy Training (\(n=100\), \(\text{max\_depth}=10\), grouped split) | Completed (Train=32, Val=9; Val Acc=0.6667, MAE=1.5556) |
+| **Phase 8.3–8.4** | Baseline Benchmarking & Stage-Wise Latency Profiling Harness | Harness Ready (Ready for re-benchmark on v2 policy) |
 | **Phase 9** | Real-Time Workload & Telemetry Monitor (\(L\)) | *Upcoming* |
 | **Phase 10** | Load-Aware Adaptive Controller (\(\pi(q, L) = (s, k, b)\)) | *Upcoming* |
 | **Phase 11** | Concurrency Evaluation Sweeps (\(C \in \{1, 2, 4, 8, 16\}\)) | *Upcoming* |
-
----
-
-## Empirical Benchmark Findings (Steady-State)
-
-Evaluated across Fixed-\(K\) baselines and the trained Adaptive SAGE Policy under identical conditions on Natural Questions:
-
-| Configuration | Avg \(K\) | Recall@K | Mean Latency | **P95 Latency** | Avg Tokens | **Token Savings vs. K=30** | **Latency Impv. vs. K=30** | SLO Status (\(\le 5.0\text{s}\)) |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Fixed \(K=2\)** | 2.0 | 40.0% | 3,385.4 ms | 5,170.2 ms | 579.8 | 84.86% | 87.18% | Borderline |
-| **Fixed \(K=5\)** | 5.0 | 40.0% | 5,343.2 ms | 7,003.5 ms | 901.4 | 76.46% | 79.77% | Violated |
-| **Fixed \(K=10\)** | 10.0 | 60.0% | 11,503.3 ms | 12,260.4 ms | 1,509.8 | 60.57% | 56.44% | Violated |
-| **Fixed \(K=30\)** | 30.0 | 60.0% | 26,406.6 ms | 29,625.5 ms | 3,829.0 | 0.00% | 0.00% | Violated |
-| **Adaptive SAGE** | **2.0** | **40.0%** | **4,015.7 ms** | **4,284.0 ms** | **578.8** | **84.88%** | **84.79%** | **Passed** |
-
-### Latency Bottleneck Breakdown
-Decomposed monotonic profiling revealed:
-* **Primary Bottleneck**: LLM Generation via Groq API accounts for **89.05% to 98.49%** of request latency. Fixed \(K=30\) forces generation of ~4,000 prompt tokens, driving latency to 26.0s. Adaptive SAGE trims prompt context to ~384 tokens, dropping generation to 3.65s (**7.1x speedup**).
-* **Secondary Bottleneck**: Dense query vector encoding (`BGE-M3` on CPU) takes **~300–340 ms** (5.7% to 9.5%).
-* **Sparse Retrieval**: BM25 inverted index scoring takes **~47–50 ms** (~1%).
-* **SAGE Policy Overhead**: Probe feature extraction (0.10 ms) + Random Forest inference (13.49 ms) totals **<14 ms**, introducing negligible overhead.
 
 ---
 
@@ -61,17 +40,17 @@ Load-Aware-SAGE/
 ├── src/
 │   ├── config.py                 # Central configuration, paths, and hyperparameters
 │   ├── adaptive/
-│   │   ├── oracle.py             # SAGE Oracle Decision Rule for optimal minimal K*
+│   │   ├── oracle.py             # Quality-aware, SLO-constrained SAGE Oracle (argmax Q s.t. L <= SLO)
 │   │   └── policy.py             # Random Forest Adaptive Retrieval Policy model
 │   ├── data/
 │   │   ├── loader.py             # Natural Questions data loader & record models
 │   │   └── chunker.py            # RecursiveCharacterTextSplitter (500-char chunks)
 │   ├── evaluation/
 │   │   ├── latency_tracker.py    # Fine-grained monotonic stage latency tracker
-│   │   ├── benchmark_metrics.py  # EM, Token F1, Recall@K, Faithfulness, Percentiles
+│   │   ├── benchmark_metrics.py  # EM, Token F1, Answer Quality, Recall@K, Faithfulness
 │   │   └── latency_analysis.py   # Latency bottleneck analyzer & Matplotlib charts
 │   ├── generation/
-│   │   └── generator.py          # Groq LLM client (openai/gpt-oss-120b, greedy decoding)
+│   │   └── generator.py          # Groq LLM client (openai/gpt-oss-120b, TPM pacing & telemetry)
 │   ├── retrieval/
 │   │   ├── dense.py              # BGE-M3 embeddings & FAISS IndexFlatIP search
 │   │   ├── sparse.py             # BM25Okapi index & lexical search
@@ -83,14 +62,14 @@ Load-Aware-SAGE/
 ├── scripts/
 │   ├── build_dense.py            # Generates BGE-M3 passage embeddings & FAISS index
 │   ├── build_bm25.py             # Builds and serializes BM25 lexical index
-│   ├── build_oracle_dataset.py   # Extracts probe features & computes Oracle K* labels
-│   ├── train_sage_policy.py      # Trains the Random Forest policy (100 trees, depth 10)
+│   ├── generate_oracle_dataset.py # Evaluates all candidate K values & builds 3 Oracle datasets
+│   ├── train_sage_policy.py      # Validates features, grouped-splits, & trains Random Forest
 │   └── evaluate_baselines.py     # End-to-end benchmarking of Fixed-K vs. Adaptive SAGE
 │
 ├── tests/
 │   ├── test_features.py          # 36 tests: Probe features, bounds, NaN guards
-│   ├── test_oracle.py            # 3 tests: Decision rule & hit computation
-│   ├── test_policy.py            # 11 tests: Policy training, predict, snapping, IO
+│   ├── test_oracle.py            # 7 tests: Quality-aware Oracle policy, ties, infeasibility, leakage
+│   ├── test_policy.py            # 12 tests: Policy training, validation guards, serialization
 │   ├── test_evaluation.py        # 8 tests: Metrics, latency tracking, plot generators
 │   ├── test_hybrid.py            # Hybrid retrieval smoke tests
 │   └── test_generator.py         # Generation engine smoke tests
@@ -99,20 +78,14 @@ Load-Aware-SAGE/
 │   ├── dataset/                  # Source questions, documents, and 8,826 chunks
 │   ├── embeddings/               # Precomputed BGE-M3 embeddings (1024-dim, float32)
 │   ├── indexes/                  # Serialized FAISS & BM25 indexes
-│   ├── models/                   # Serialized Random Forest policy (sage_policy.pkl)
-│   └── metadata/                 # Versioned provenance metadata (v1 JSON files)
+│   ├── models/random_forest/     # Serialized Random Forest policy (sage_policy.pkl)
+│   └── metadata/                 # Versioned provenance metadata (dataset, chunks, embeddings, retrieval, experiments, models)
 │
-├── experiments/
-│   ├── oracle_labels/            # Pure query-level oracle target labels (CSV/JSONL)
-│   ├── oracle_results/           # Full ML training dataset (features + labels)
-│   └── logs/                     # Detailed execution logs
-│
-├── results/
-│   ├── baseline_benchmarks/      # Query-level and aggregated benchmark CSVs/JSONs
-│   └── latency_analysis/         # Stage latency CSV and 6 generated comparison plots
-│
-└── docs/
-    └── baseline_benchmarking_and_latency_analysis.md  # Detailed research report
+└── experiments/
+    ├── baseline_results/         # Baseline evaluation outputs
+    ├── load_aware_results/       # Future load-aware outputs
+    ├── oracle_results/           # Candidate evaluations, selected labels, RF dataset, excluded audit
+    └── logs/                     # Detailed execution logs
 ```
 
 ---
@@ -150,9 +123,9 @@ GROQ_MODEL=openai/gpt-oss-120b
 ## Verification & Execution Guide
 
 ### Run Unit Tests
-To verify all modules and edge-case guards (58 tests):
+To verify all modules, leakage guards, Oracle policy rules, and evaluation metrics (63 tests):
 ```powershell
-.\venv\Scripts\python.exe -m pytest -v
+.\venv\Scripts\python.exe -m pytest tests/test_features.py tests/test_oracle.py tests/test_policy.py tests/test_evaluation.py -v
 ```
 
 ### 1. Build Retrieval Indexes
@@ -161,20 +134,27 @@ To verify all modules and edge-case guards (58 tests):
 .\venv\Scripts\python.exe scripts/build_dense.py
 ```
 
-### 2. Generate Oracle Training Dataset
-Computes the minimal optimal budget \(K^* = \min \{K \mid \text{Hit@}K=1 \text{ and } \text{Latency} \le T_{\text{SLO}}\}\):
+### 2. Generate Quality-Aware Oracle Dataset
+Evaluates all candidate budgets \(K \in \{2, 3, 5, 7, 10, 15, 20, 25, 30\}\) on eligible short-answer queries and selects \(K^* = \arg\max_K Q(q, K)\) s.t. \(L(q, K) \le 5.0\text{s}\):
 ```powershell
-.\venv\Scripts\python.exe scripts/build_oracle_dataset.py
+# Quick validation run (e.g., 6 queries)
+.\venv\Scripts\python.exe scripts/generate_oracle_dataset.py --max-queries 6 --resume
+
+# Complete all 41 eligible queries (resumes safely without re-running cached pairs)
+.\venv\Scripts\python.exe scripts/generate_oracle_dataset.py --resume
 ```
-Outputs:
-* `experiments/oracle_results/oracle_dataset.csv` (features + labels)
-* `experiments/oracle_labels/oracle_labels.csv` (pure labels)
+Outputs under `experiments/oracle_results/`:
+* `oracle_candidate_evaluations.csv`: Every evaluated `(query_id, candidate_k)` outcome & latency.
+* `oracle_selected_labels.csv`: Selected `K*`, feasibility flags, and selection rationale per eligible query.
+* `oracle_dataset.csv`: Leakage-free supervised training data (`FEATURE_NAMES -> oracle_k`).
+* `oracle_excluded_queries.csv`: Unannotated queries preserved separately with `missing_ground_truth` status.
 
 ### 3. Train the SAGE Adaptive Policy
-Trains the Random Forest model and persists weights to `artifacts/models/`:
+Validates leakage guards, enforces query-grouped train/validation splits (`query_id` disjoint), trains `RandomForestClassifier`, and records metrics:
 ```powershell
 .\venv\Scripts\python.exe scripts/train_sage_policy.py
 ```
+Persists `artifacts/models/random_forest/sage_policy.pkl`, `experiments/oracle_results/policy_evaluation_results.json`, and `artifacts/metadata/models/models_v2.json`.
 
 ### 4. Run Baseline Benchmarking & Latency Analysis
 Evaluates Fixed-\(K\) (\(K \in \{2, 5, 10, 30\}\)) against Adaptive SAGE:
@@ -184,11 +164,7 @@ Evaluates Fixed-\(K\) (\(K \in \{2, 5, 10, 30\}\)) against Adaptive SAGE:
 
 # Full benchmark across all queries
 .\venv\Scripts\python.exe scripts/evaluate_baselines.py --sample_size 0 --warmup 1
-
-# Re-compute metrics and plots from existing query data
-.\venv\Scripts\python.exe scripts/evaluate_baselines.py --from_existing_results
 ```
-All comparative charts and stage breakdowns will be saved under `results/latency_analysis/`.
 
 ---
 

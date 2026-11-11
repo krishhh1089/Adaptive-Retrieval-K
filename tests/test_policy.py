@@ -197,3 +197,33 @@ def test_save_and_load(tmp_path, dummy_features_and_labels):
     loaded_preds = loaded_policy.predict(X)
     np.testing.assert_array_equal(orig_preds, loaded_preds)
 
+
+def test_validate_oracle_dataset_leakage_and_bounds(dummy_features_and_labels):
+    from scripts.train_sage_policy import validate_oracle_dataset
+
+    X, y = dummy_features_and_labels
+    valid_df = pd.DataFrame(X, columns=FEATURE_NAMES)
+    valid_df["query_id"] = [f"q_{i}" for i in range(len(X))]
+    valid_df["oracle_k"] = y
+
+    # Valid dataframe passes cleanly
+    validate_oracle_dataset(valid_df)
+
+    # Leakage column triggers ValueError
+    leak_df = valid_df.copy()
+    leak_df["answer_quality"] = 0.5
+    with pytest.raises(ValueError, match="Data leakage detected"):
+        validate_oracle_dataset(leak_df)
+
+    # Invalid label triggers ValueError
+    bad_label_df = valid_df.copy()
+    bad_label_df.loc[0, "oracle_k"] = 99
+    with pytest.raises(ValueError, match="Invalid oracle_k labels"):
+        validate_oracle_dataset(bad_label_df)
+
+    # NaN feature triggers ValueError
+    nan_df = valid_df.copy()
+    nan_df.loc[0, FEATURE_NAMES[0]] = np.nan
+    with pytest.raises(ValueError, match="Missing \\(NaN\\) values"):
+        validate_oracle_dataset(nan_df)
+

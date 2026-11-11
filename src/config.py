@@ -28,6 +28,8 @@ BM25_INDEX_DIR = INDEXES_DIR / "bm25"
 MODELS_DIR = ARTIFACTS_DIR / "models"
 SAGE_MODEL_DIR = MODELS_DIR / "random_forest"
 METADATA_DIR = ARTIFACTS_DIR / "metadata"
+MODELS_METADATA_DIR = METADATA_DIR / "models"
+EXPERIMENTS_METADATA_DIR = METADATA_DIR / "experiments"
 
 # Dataset Files (Existing Artifacts)
 NQ_CLEAN_SAMPLE_PATH = DATASET_DIR / "nq_clean_sample.jsonl"
@@ -40,8 +42,10 @@ CHUNKS_PATH = DATASET_DIR / "chunks.jsonl"
 EXPERIMENTS_DIR = PROJECT_ROOT / "experiments"
 BASELINE_RESULTS_DIR = EXPERIMENTS_DIR / "baseline_results"
 LOAD_AWARE_RESULTS_DIR = EXPERIMENTS_DIR / "load_aware_results"
-ORACLE_LABELS_DIR = EXPERIMENTS_DIR / "oracle_labels"
 ORACLE_RESULTS_DIR = EXPERIMENTS_DIR / "oracle_results"
+ORACLE_CANDIDATE_EVAL_PATH = ORACLE_RESULTS_DIR / "oracle_candidate_evaluations.csv"
+ORACLE_SELECTED_LABELS_PATH = ORACLE_RESULTS_DIR / "oracle_selected_labels.csv"
+ORACLE_DATASET_PATH = ORACLE_RESULTS_DIR / "oracle_dataset.csv"
 LOGS_DIR = EXPERIMENTS_DIR / "logs"
 
 # Ensure all writeable directories exist
@@ -51,9 +55,10 @@ for directory in [
     BM25_INDEX_DIR,
     SAGE_MODEL_DIR,
     METADATA_DIR,
+    MODELS_METADATA_DIR,
+    EXPERIMENTS_METADATA_DIR,
     BASELINE_RESULTS_DIR,
     LOAD_AWARE_RESULTS_DIR,
-    ORACLE_LABELS_DIR,
     ORACLE_RESULTS_DIR,
     LOGS_DIR,
 ]:
