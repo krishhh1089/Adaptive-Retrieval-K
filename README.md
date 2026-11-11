@@ -8,7 +8,7 @@ Inspired by the research paper *SAGE: SLO-Aware Adaptive Retrieval for Productio
 
 ## Key Research Highlights
 
-* **Adaptive Retrieval Policy (\(\pi(q) \rightarrow K\))**: Replaces static retrieval budgets with a lightweight Random Forest model trained to predict query-level passage budgets.
+* **Adaptive Retrieval Policy (\(\pi(q) \rightarrow K\))**: Replace static retrieval budgets with a lightweight Random Forest model trained to predict query-level passage budgets.
 * **Quality-Aware, SLO-Constrained Oracle**: Selects \(K^* = \arg\max_K Q(q, K)\) subject to \(L(q, K) \le 5.0\text{s}\), using answer quality (Token F1 with explicit abstention handling) and smallest-\(K\) tie-breaking rather than passage containment alone.
 * **Lightweight \(k=2\) Retrieval Probe**: Extracts early retrieval signals (dense/sparse confidence scores, score margins, and sparse-dense overlap) with negligible inference overhead.
 * **Leakage-Free Training Pipeline**: Strictly separates candidate generation/evaluation telemetry from model input features (`FEATURE_NAMES`) and enforces query-grouped train/validation splits.
