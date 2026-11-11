@@ -14544,3 +14544,44 @@ weighted avg       0.50      0.67      0.57         9
 2026-11-11 10:13:59 | INFO     | dense_retriever:372 | Result conversion   : 0.07 ms
 2026-11-11 10:13:59 | INFO     | dense_retriever:375 | TOTAL DENSE LATENCY  : 437.98 ms
 2026-11-11 10:13:59 | INFO     | dense_retriever:379 | =======================================================
+2026-11-11 12:52:34 | INFO     | document_chunker:114 | Loaded 8826 chunks from chunks.jsonl
+2026-11-11 12:52:34 | INFO     | hybrid_retriever:69 | Initializing HybridRetriever indexes from disk...
+2026-11-11 12:52:34 | INFO     | dense_retriever:257 | Loaded FAISS index: 8826 vectors
+2026-11-11 12:52:35 | INFO     | sparse_retriever:79 | Loaded BM25 index from C:\Users\Noor Ahmed\OneDrive\Desktop\UROP\Adaptive-Retrieval-K\artifacts\indexes\bm25\bm25_index.pkl (8826 passages)
+2026-11-11 12:52:35 | INFO     | hybrid_retriever:72 | Both Dense (FAISS) and Sparse (BM25) indexes loaded successfully.
+2026-11-11 12:53:02 | INFO     | dense_retriever:84 | Loading BGE-M3: device=cpu, use_fp16=False
+2026-11-11 12:57:16 | INFO     | dense_retriever:95 | BGE-M3 model successfully loaded.
+2026-11-11 12:57:17 | INFO     | dense_retriever:295 | -------------------------------------------------------
+2026-11-11 12:57:17 | INFO     | dense_retriever:296 | QUERY ENCODING BREAKDOWN
+2026-11-11 12:57:17 | INFO     | dense_retriever:297 | -------------------------------------------------------
+2026-11-11 12:57:17 | INFO     | dense_retriever:298 | Model initialization : 281393.51 ms
+2026-11-11 12:57:17 | INFO     | dense_retriever:301 | Query embedding      : 664.08 ms
+2026-11-11 12:57:17 | INFO     | dense_retriever:304 | Normalization        : 0.98 ms
+2026-11-11 12:57:17 | INFO     | dense_retriever:307 | Total query encoding : 282058.57 ms
+2026-11-11 12:57:17 | INFO     | dense_retriever:310 | -------------------------------------------------------
+2026-11-11 12:57:17 | INFO     | dense_retriever:362 | =======================================================
+2026-11-11 12:57:17 | INFO     | dense_retriever:363 | DENSE RETRIEVAL LATENCY BREAKDOWN
+2026-11-11 12:57:17 | INFO     | dense_retriever:364 | =======================================================
+2026-11-11 12:57:17 | INFO     | dense_retriever:366 | Query encoding       : 282061.18 ms
+2026-11-11 12:57:17 | INFO     | dense_retriever:369 | FAISS search only    : 6.48 ms
+2026-11-11 12:57:17 | INFO     | dense_retriever:372 | Result conversion   : 0.05 ms
+2026-11-11 12:57:17 | INFO     | dense_retriever:375 | TOTAL DENSE LATENCY  : 282067.73 ms
+2026-11-11 12:57:17 | INFO     | dense_retriever:379 | =======================================================
+2026-11-11 12:57:18 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=20, max_depth=4, samples=30)...
+2026-11-11 12:57:18 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 12:57:18 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=10, max_depth=3, samples=30)...
+2026-11-11 12:57:18 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 12:57:18 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=10, max_depth=3, samples=30)...
+2026-11-11 12:57:18 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 12:57:18 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=10, max_depth=3, samples=30)...
+2026-11-11 12:57:18 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 12:57:18 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=20, max_depth=4, samples=30)...
+2026-11-11 12:57:18 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 12:57:18 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=20, max_depth=4, samples=30)...
+2026-11-11 12:57:18 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 12:57:18 | INFO     | sage_policy:217 | Evaluation Results: Accuracy=0.9667, MAE=0.6667
+2026-11-11 12:57:18 | INFO     | sage_policy:124 | Training SAGE Random Forest Policy (n_estimators=15, max_depth=3, samples=30)...
+2026-11-11 12:57:18 | INFO     | sage_policy:130 | SAGE Random Forest Policy training complete.
+2026-11-11 12:57:18 | INFO     | sage_policy:245 | Saved SAGE policy artifact to: C:\Users\Noor Ahmed\AppData\Local\Temp\pytest-of-Noor Ahmed\pytest-0\test_save_and_load0\test_sage_policy.pkl
+2026-11-11 12:57:18 | INFO     | sage_policy:267 | Loaded SAGE policy artifact from: C:\Users\Noor Ahmed\AppData\Local\Temp\pytest-of-Noor Ahmed\pytest-0\test_save_and_load0\test_sage_policy.pkl
+2026-11-11 12:57:18 | INFO     | latency_analyzer:89 | Saved stage latency breakdown to: C:\Users\Noor Ahmed\AppData\Local\Temp\pytest-of-Noor Ahmed\pytest-0\test_latency_analyzer_and_plot0\stage_latency.csv
