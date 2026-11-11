@@ -1,0 +1,42 @@
+query_id,query,ground_truth_status,selected_k,selected_answer_quality,selected_latency_ms,feasible_candidate_count,has_feasible_candidate,selection_reason
+q_0,when is the last episode of season 8 of the walking dead,eligible,2,0.0,2251.202800000101,9,True,all_feasible_zero_quality_smallest_k
+q_1,in greek mythology who was the goddess of spring growth,eligible,5,0.19999999999999998,965.8434000011766,8,True,max_quality_tie_smallest_k
+q_6,what is the name of the most important jewish text,eligible,5,0.4444444444444445,2050.8283999988635,9,True,max_quality_within_slo
+q_8,what is the name of spain's most famous soccer team,eligible,30,0.2,4787.003499999628,9,True,max_quality_within_slo
+q_9,when was the first robot used in surgery,eligible,5,0.2222222222222222,1571.0794999995414,8,True,max_quality_tie_smallest_k
+q_13,who sings the song i don't care i love it,eligible,2,0.5714285714285714,3418.7286000014865,6,True,max_quality_tie_smallest_k
+q_16,who are uncle owen and aunt beru related to,eligible,2,0.0,1085.0434999993013,9,True,all_feasible_zero_quality_smallest_k
+q_19,where is zimbabwe located in the world map,eligible,2,0.8421052631578948,1003.240400001232,9,True,max_quality_within_slo
+q_20,100 acres is equal to how many hectares,eligible,10,0.09523809523809523,4185.758499999793,9,True,max_quality_tie_smallest_k
+q_22,where was donovan mitchell picked in the draft,eligible,2,0.18181818181818182,887.6334000015049,9,True,max_quality_within_slo
+q_26,where did the beatles final live performance take place,eligible,5,0.5806451612903226,1198.1406999984756,9,True,max_quality_within_slo
+q_27,who is the president of costa rica 2017,eligible,3,0.8571428571428571,1339.1279999996186,8,True,max_quality_tie_smallest_k
+q_29,when did power rangers tv show come out,eligible,20,0.5,1377.9184999984864,8,True,max_quality_tie_smallest_k
+q_31,how many beverly hills cops movies are there,eligible,2,1.0,1525.2548999997089,8,True,max_quality_tie_smallest_k
+q_32,who holds the most women's wimbledon titles,eligible,15,0.33333333333333337,2285.4237999999896,9,True,max_quality_tie_smallest_k
+q_34,where does jinx you owe me a coke come from,eligible,20,0.20408163265306123,1683.1089000006614,9,True,max_quality_within_slo
+q_39,where does the last name hickey come from,eligible,5,0.2857142857142857,1786.842000001343,9,True,max_quality_tie_smallest_k
+q_43,where is the greatest royal rumble taking place,eligible,2,0.2608695652173913,1322.6228000021365,9,True,max_quality_tie_smallest_k
+q_44,who sang my name is tallulah in bugsy malone,eligible,2,0.36363636363636365,1460.1078999985475,9,True,max_quality_tie_smallest_k
+q_48,what is andy's sisters name in toy story,eligible,3,0.6666666666666666,1410.120000000461,9,True,max_quality_within_slo
+q_49,who sings with shaggy on it wasn me,eligible,2,0.18181818181818182,1033.1966999983706,9,True,max_quality_tie_smallest_k
+q_51,what is the largest catholic high school in america,eligible,3,1.0,1163.5583999996015,9,True,max_quality_within_slo
+q_52,who established the peoples republic of china in 1949,eligible,2,0.3636363636363636,981.873100001394,9,True,max_quality_within_slo
+q_54,who sang take that look off your face,eligible,2,0.3636363636363636,760.0853999974788,7,True,max_quality_tie_smallest_k
+q_55,who plays percy in the lost city of z,eligible,2,0.33333333333333337,775.1098999979149,8,True,max_quality_tie_smallest_k
+q_58,who plays the first lady on house of cards,eligible,2,0.3333333333333333,991.7291000019759,8,True,max_quality_tie_smallest_k
+q_65,who owns st andrews golf course in scotland,eligible,3,0.4444444444444445,1132.9882999998517,9,True,max_quality_within_slo
+q_68,which city and state hosts the annual college world series,eligible,2,1.0,1596.5579000003345,8,True,max_quality_tie_smallest_k
+q_69,who is ted talking about in how i met your mother,eligible,2,0.4,2436.2810000020545,9,True,max_quality_within_slo
+q_72,when does grey's anatomy season 14 premiere,eligible,2,0.5,2276.5319000027375,9,True,max_quality_tie_smallest_k
+q_73,the partial pressure of carbon dioxide in arterial blood is approximately,eligible,7,0.5833333333333334,2547.1237000019755,9,True,max_quality_tie_smallest_k
+q_76,what was uncle jesse's original last name on full house,eligible,10,0.2857142857142857,2397.4374999961583,9,True,max_quality_tie_smallest_k
+q_78,who pays the judgements on the judge mathis show,eligible,2,0.0,861.425799994322,8,True,all_feasible_zero_quality_smallest_k
+q_79,who made up the elf on the shelf,eligible,10,0.2857142857142857,1858.1806999936816,9,True,max_quality_within_slo
+q_82,who warned concord that the british were coming,eligible,20,0.4,3822.9930000015884,9,True,max_quality_within_slo
+q_83,who lasted the longest on alone season 2,eligible,2,0.0,1048.3335000026273,9,True,all_feasible_zero_quality_smallest_k
+q_88,where is the us military base in japan,eligible,20,0.4,1309.9382999935187,9,True,max_quality_within_slo
+q_89,who determines the size of the supreme court,eligible,5,0.2857142857142857,1863.7149999995017,8,True,max_quality_tie_smallest_k
+q_90,who is the actor that plays lucifer on tv,eligible,2,0.4,995.2130000019679,9,True,max_quality_tie_smallest_k
+q_96,who designed the national coat of arms of south africa,eligible,2,0.33333333333333337,1010.195399998338,9,True,max_quality_tie_smallest_k
+q_98,when does model code of conduct come into force,eligible,2,0.5833333333333334,1150.412700000743,9,True,max_quality_tie_smallest_k

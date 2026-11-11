@@ -1,0 +1,135 @@
+{
+  "timestamp_utc": "2026-11-11T04:35:37.182264+00:00",
+  "dataset_source": "experiments\\oracle_results\\oracle_dataset.csv",
+  "feature_names": [
+    "query_char_len",
+    "query_word_count",
+    "query_type",
+    "query_complexity",
+    "dense_top1_score",
+    "dense_score_drop_1_2",
+    "bm25_top1_score",
+    "bm25_score_drop_1_2",
+    "jaccard_top2",
+    "time_remaining_ms"
+  ],
+  "total_samples": 41,
+  "train_samples": 32,
+  "val_samples": 9,
+  "query_overlap_count": 0,
+  "label_distribution": {
+    "2": 21,
+    "3": 4,
+    "5": 6,
+    "7": 1,
+    "10": 3,
+    "15": 1,
+    "20": 4,
+    "30": 1
+  },
+  "train_accuracy": 1.0,
+  "train_mae": 0.0,
+  "val_accuracy": 0.6666666666666666,
+  "val_mae": 1.5555555555555556,
+  "confusion_matrix_labels": [
+    2,
+    3,
+    5,
+    10,
+    20
+  ],
+  "confusion_matrix": [
+    [
+      6,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  ],
+  "classification_report": {
+    "2": {
+      "precision": 0.75,
+      "recall": 1.0,
+      "f1-score": 0.8571428571428571,
+      "support": 6.0
+    },
+    "3": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 1.0
+    },
+    "5": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 1.0
+    },
+    "10": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 1.0
+    },
+    "20": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 0.0
+    },
+    "accuracy": 0.6666666666666666,
+    "macro avg": {
+      "precision": 0.15,
+      "recall": 0.2,
+      "f1-score": 0.17142857142857143,
+      "support": 9.0
+    },
+    "weighted avg": {
+      "precision": 0.5,
+      "recall": 0.6666666666666666,
+      "f1-score": 0.5714285714285714,
+      "support": 9.0
+    }
+  },
+  "feature_importances": {
+    "bm25_top1_score": 0.184928824046162,
+    "time_remaining_ms": 0.15492112944892408,
+    "bm25_score_drop_1_2": 0.12874816369689268,
+    "dense_top1_score": 0.12443757291113268,
+    "dense_score_drop_1_2": 0.12005533529199712,
+    "query_char_len": 0.11514194092421796,
+    "query_type": 0.06146664921878162,
+    "jaccard_top2": 0.06054510073186952,
+    "query_word_count": 0.049755283730022325,
+    "query_complexity": 0.0
+  }
+}

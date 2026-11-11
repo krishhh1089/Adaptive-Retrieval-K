@@ -12,13 +12,6 @@ __pycache__/
 # Jupyter
 .ipynb_checkpoints/
 
-# Generated artifacts
-artifacts/embeddings/
-artifacts/indexes/
-artifacts/models/
-
-# Experiment outputs
-experiments/
 
 # Editor settings
 .vscode/

@@ -1,0 +1,63 @@
+{
+  "experiment_name": "Quality_Aware_SLO_Constrained_Oracle",
+  "version": "v2",
+  "timestamp_utc": "2026-11-11T04:34:37.497625+00:00",
+  "dataset_id": "Natural_Questions_100_Sample_v1",
+  "candidate_k_values": [
+    2,
+    3,
+    5,
+    7,
+    10,
+    15,
+    20,
+    25,
+    30
+  ],
+  "answer_quality_methodology": {
+    "metric": "unigram_token_f1_with_abstention_guard",
+    "abstention_score": 0.0,
+    "missing_ground_truth_handling": "excluded_preserved_as_none",
+    "tie_breaking_rule": "smallest_k_among_equivalent_max_quality"
+  },
+  "latency_slo_seconds": 5.0,
+  "generation_configuration": {
+    "provider": "Groq",
+    "model": "openai/gpt-oss-120b",
+    "temperature": 0.0,
+    "max_tokens": 256
+  },
+  "retrieval_configuration": {
+    "dense_model": "BAAI/bge-m3",
+    "dense_index": "FAISS_IndexFlatIP",
+    "sparse_algorithm": "BM25Okapi",
+    "fusion": "RRF_k60",
+    "candidate_pool_depth": 30
+  },
+  "counts": {
+    "total_dataset_queries": 100,
+    "eligible_queries_total": 41,
+    "excluded_missing_gt_queries": 59,
+    "evaluated_queries": 41,
+    "candidate_evaluation_rows": 369,
+    "queries_with_feasible_k": 41,
+    "queries_without_feasible_k": 0,
+    "training_rows_emitted": 41
+  },
+  "oracle_k_distribution": {
+    "2": 21,
+    "3": 4,
+    "5": 6,
+    "7": 1,
+    "10": 3,
+    "15": 1,
+    "20": 4,
+    "30": 1
+  },
+  "outputs": {
+    "candidate_evaluations_csv": "experiments\\oracle_results\\oracle_candidate_evaluations.csv",
+    "selected_labels_csv": "experiments\\oracle_results\\oracle_selected_labels.csv",
+    "training_dataset_csv": "experiments\\oracle_results\\oracle_dataset.csv",
+    "excluded_queries_csv": "experiments\\oracle_results\\oracle_excluded_queries.csv"
+  }
+}
